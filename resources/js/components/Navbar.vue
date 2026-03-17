@@ -1,6 +1,5 @@
 <template>
-  <nav>
-    <h1>Mi Navbar</h1>
+  <nav class="navbar">
     <img :src="logo" alt="Logo" width="200">
   </nav>
 </template>
@@ -8,3 +7,12 @@
 <script setup>
 import logo from '../../assets/multimar-logistics.png'
 </script>
+
+<style scoped>
+.navbar {
+  min-height: 5vh;
+  background-color: white;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+</style>
