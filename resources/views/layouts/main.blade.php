@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>@yield('title', 'Multimar Logistics')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -9,8 +9,7 @@
 </head>
 <body>
     <div id="app">
-        <navbar></navbar>
-        <login></login>
+        @yield('content')
     </div>
 </body>
 </html>
