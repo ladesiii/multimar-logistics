@@ -16,8 +16,23 @@
         <label for="email">Correo electronico</label>
         <input id="email" v-model="form.email" type="email" required>
 
-        <label for="password">Contraseña</label>
+        <label for="password">Contrasena</label>
         <input id="password" v-model="form.password" type="password" required>
+
+        <label for="nom_empresa">Empresa</label>
+        <input id="nom_empresa" v-model="form.nom_empresa" type="text" required>
+
+        <label for="cif_nif">CIF/NIF</label>
+        <input id="cif_nif" v-model="form.cif_nif" type="text" required>
+
+        <label for="adreca">Direccion</label>
+        <input id="adreca" v-model="form.adreca" type="text">
+
+        <label for="contacte">Contacto</label>
+        <input id="contacte" v-model="form.contacte" type="text">
+
+        <label for="telefon">Telefono</label>
+        <input id="telefon" v-model="form.telefon" type="text">
 
         <button type="submit" class="submit-btn">Crear Cliente</button>
       </form>
@@ -35,6 +50,11 @@ const form = reactive({
   cognoms: '',
   email: '',
   password: '',
+  nom_empresa: '',
+  cif_nif: '',
+  adreca: '',
+  contacte: '',
+  telefon: '',
 })
 
 const handleSubmit = () => {
