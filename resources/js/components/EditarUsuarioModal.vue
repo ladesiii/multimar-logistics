@@ -2,37 +2,44 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
-        <h2>NUEVO USUARIO</h2>
+        <h2>EDITAR USUARIO</h2>
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
       <form class="modal-form" @submit.prevent="handleSubmit">
-        <label for="nom">Nombre</label>
-        <input id="nom" v-model="form.nom" type="text" required>
+        <label for="edit-nom">Nombre</label>
+        <input id="edit-nom" v-model="form.nom" type="text" required>
 
-        <label for="cognoms">Apellidos</label>
-        <input id="cognoms" v-model="form.cognoms" type="text" required>
+        <label for="edit-cognoms">Apellidos</label>
+        <input id="edit-cognoms" v-model="form.cognoms" type="text" required>
 
-        <label for="email">Correo electronico</label>
-        <input id="email" v-model="form.email" type="email" required>
+        <label for="edit-email">Correo electronico</label>
+        <input id="edit-email" v-model="form.email" type="email" required>
 
-        <label for="password">Contraseña</label>
-        <input id="password" v-model="form.password" type="password" required>
+        <label for="edit-password">Contraseña (opcional)</label>
+        <input id="edit-password" v-model="form.password" type="password" placeholder="Dejar vacio para no cambiar">
 
-        <label for="rol_id">Rol</label>
-        <select id="rol_id" v-model="form.rol_id" required>
+        <label for="edit-rol_id">Rol</label>
+        <select id="edit-rol_id" v-model="form.rol_id" required>
           <option value="1">Admin</option>
           <option value="2">Operador</option>
         </select>
 
-        <button type="submit" class="submit-btn">Crear Usuario</button>
+        <button type="submit" class="submit-btn">Guardar cambios</button>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
+
+const props = defineProps({
+  user: {
+    type: Object,
+    required: true,
+  },
+})
 
 const emit = defineEmits(['close', 'submit'])
 
@@ -43,6 +50,22 @@ const form = reactive({
   password: '',
   rol_id: '2',
 })
+
+const hydrateForm = () => {
+  form.nom = props.user?.nom || ''
+  form.cognoms = props.user?.cognoms || ''
+  form.email = props.user?.email || ''
+  form.password = ''
+  form.rol_id = String(props.user?.rol_id ?? 2)
+}
+
+watch(
+  () => props.user,
+  () => {
+    hydrateForm()
+  },
+  { immediate: true }
+)
 
 const handleSubmit = () => {
   emit('submit', {

@@ -33,12 +33,12 @@
           <td>{{ user.email }}</td>
           <td>{{ user.rol }}</td>
           <td class="actions-cell">
-            <button type="button" class="icon-btn edit-btn" aria-label="Editar usuario">
+            <button type="button" class="icon-btn edit-btn" aria-label="Editar usuario" @click="openEditModal(user)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 3.487a2.1 2.1 0 1 1 2.97 2.97L9.23 17.06 5 18l.939-4.23 10.923-10.283Z" />
               </svg>
             </button>
-            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar usuario">
+            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar usuario" @click="openDeleteModal(user)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 .92h6a1 1 0 0 0 1-.92L17 7" />
               </svg>
@@ -54,6 +54,20 @@
       @submit="handleCreateUser"
     />
 
+    <EditarUsuarioModal
+      v-if="isEditModalOpen && selectedUser"
+      :user="selectedUser"
+      @close="isEditModalOpen = false"
+      @submit="handleEditUser"
+    />
+
+    <EliminarUsuarioModal
+      v-if="isDeleteModalOpen && userToDelete"
+      :user="userToDelete"
+      @close="closeDeleteModal"
+      @confirm="confirmDeleteUser"
+    />
+
     <p v-if="submitError" class="submit-error">{{ submitError }}</p>
   </section>
 </template>
@@ -61,11 +75,17 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import NuevoUsuarioModal from './NuevoUsuarioModal.vue'
+import EditarUsuarioModal from './EditarUsuarioModal.vue'
+import EliminarUsuarioModal from './EliminarUsuarioModal.vue'
 
 const users = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const isModalOpen = ref(false)
+const isEditModalOpen = ref(false)
+const isDeleteModalOpen = ref(false)
+const selectedUser = ref(null)
+const userToDelete = ref(null)
 const submitError = ref('')
 
 const loadUsers = async () => {
@@ -95,11 +115,84 @@ const handleCreateUser = async (userData) => {
     await loadUsers()
   } catch (error) {
     if (error.response?.status === 422) {
-      submitError.value = 'Revisa los datos: email repetido o formato invalido.'
+      const apiMessage = error.response?.data?.message
+      const validationErrors = error.response?.data?.errors
+      const firstValidationError = validationErrors
+        ? Object.values(validationErrors)[0]?.[0]
+        : ''
+
+      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario.'
       return
     }
 
     submitError.value = 'No se pudo crear el usuario.'
+  }
+}
+
+const openEditModal = (user) => {
+  submitError.value = ''
+  selectedUser.value = {
+    id: user.id,
+    nom: user.nom || '',
+    cognoms: user.cognoms || '',
+    email: user.email || '',
+    rol_id: user.rol_id || 2,
+  }
+  isEditModalOpen.value = true
+}
+
+const handleEditUser = async (userData) => {
+  if (!selectedUser.value?.id) {
+    return
+  }
+
+  submitError.value = ''
+
+  try {
+    await window.axios.put(`/api/users/${selectedUser.value.id}`, userData)
+    isEditModalOpen.value = false
+    selectedUser.value = null
+    await loadUsers()
+  } catch (error) {
+    if (error.response?.status === 422) {
+      const apiMessage = error.response?.data?.message
+      const validationErrors = error.response?.data?.errors
+      const firstValidationError = validationErrors
+        ? Object.values(validationErrors)[0]?.[0]
+        : ''
+
+      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario.'
+      return
+    }
+
+    submitError.value = 'No se pudo actualizar el usuario.'
+  }
+}
+
+const openDeleteModal = (user) => {
+  submitError.value = ''
+  userToDelete.value = user
+  isDeleteModalOpen.value = true
+}
+
+const closeDeleteModal = () => {
+  isDeleteModalOpen.value = false
+  userToDelete.value = null
+}
+
+const confirmDeleteUser = async () => {
+  if (!userToDelete.value?.id) {
+    return
+  }
+
+  submitError.value = ''
+
+  try {
+    await window.axios.delete(`/api/users/${userToDelete.value.id}`)
+    closeDeleteModal()
+    await loadUsers()
+  } catch {
+    submitError.value = 'No se pudo eliminar el usuario.'
   }
 }
 </script>
@@ -195,4 +288,5 @@ const handleCreateUser = async (userData) => {
   font-size: 0.88rem;
   font-weight: 600;
 }
+
 </style>
