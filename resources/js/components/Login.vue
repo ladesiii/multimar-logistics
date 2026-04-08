@@ -1,36 +1,98 @@
 <template>
-  <div class="login-page">
-    <div class="login-card">
-      <img :src="logo" alt="Logo" class="logo">
+  <div class="login-layout">
+    <NavbarLogin />
 
-      <form class="login-form">
-        <div class="input-group">
-          <label for="email">Correo electrónico</label>
-          <input type="text" id="email" placeholder="">
-        </div>
+    <div class="login-page">
+      <div class="login-card">
+        <img :src="logo" alt="Logo" class="logo">
 
-        <div class="input-group">
-          <label for="password">Contraseña</label>
-          <input type="password" id="password" placeholder="">
-        </div>
+        <form class="login-form" @submit.prevent="handleLogin">
+          <div class="input-group">
+            <label for="email">Correo electrónico</label>
+            <input
+              id="email"
+              v-model="form.email"
+              type="email"
+              autocomplete="username"
+              required
+            >
+          </div>
 
-        <button type="submit" class="btn-submit">Iniciar sesión</button>
+          <div class="input-group">
+            <label for="password">Contraseña</label>
+            <input
+              id="password"
+              v-model="form.password"
+              type="password"
+              autocomplete="current-password"
+              required
+            >
+          </div>
 
-        <a href="#" class="forgot-link">Forgot password?</a>
-      </form>
+          <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
+
+          <button type="submit" class="btn-submit" :disabled="isLoading">
+            {{ isLoading ? 'Entrando...' : 'Iniciar sesión' }}
+          </button>
+
+          <a href="#" class="forgot-link">Forgot password?</a>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { reactive, ref } from 'vue'
+import NavbarLogin from './NavbarLogin.vue'
 import logo from '../../assets/multimar-logistics.png'
+
+const form = reactive({
+  email: '',
+  password: '',
+})
+
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+const handleLogin = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const { data } = await window.axios.post('/api/login', {
+      email: form.email,
+      password: form.password,
+    })
+
+    localStorage.setItem('auth_token', data.token)
+    localStorage.setItem('auth_user', JSON.stringify(data.user))
+    window.axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
+
+    window.location.href = '/admin'
+  } catch (error) {
+    if (error.response?.status === 401) {
+      errorMessage.value = 'Correo o contraseña incorrectos.'
+    } else if (error.response?.status === 422) {
+      errorMessage.value = 'Revisa el formato del correo y la contraseña.'
+    } else {
+      errorMessage.value = 'No se pudo iniciar sesión. Inténtalo de nuevo.'
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
+.login-layout {
+  width: 100%;
+}
+
 /* Contenedor principal (Fondo oscuro) */
 .login-page {
   background-color: #09253B;
-  min-height: 95vh; /* Cambiado a 100vh para que no queden bordes blancos */
+  min-height: 93vh;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -81,9 +143,15 @@ import logo from '../../assets/multimar-logistics.png'
 .input-group input {
   padding: 12px;
   border-radius: 8px;
+  border: 1px solid #b5c6d6;
   background-color: #FFFFFF;
   font-size: 1rem;
   outline: none;
+}
+
+.input-group input:focus {
+  border-color: #0D2438;
+  box-shadow: 0 0 0 3px rgba(13, 36, 56, 0.12);
 }
 
 /* Botón Iniciar Sesión */
@@ -99,8 +167,20 @@ import logo from '../../assets/multimar-logistics.png'
   margin-top: 0.5rem;
 }
 
+.btn-submit:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
 .btn-submit:hover {
   background-color: #1a3a5a;
+}
+
+.form-error {
+  color: #b42318;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: -0.5rem;
 }
 
 /* Link de olvidar contraseña */

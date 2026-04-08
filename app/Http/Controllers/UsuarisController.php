@@ -47,6 +47,7 @@ class UsuarisController extends Controller
             'correu' => $validated['email'],
             'contrasenya' => $validated['password'],
             'rol_id' => $validated['rol_id'],
+
         ]);
 
         return response()->json([
