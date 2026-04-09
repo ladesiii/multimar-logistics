@@ -7,20 +7,64 @@
     <table class="data-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Título</th>
-          <th>Estado</th>
-          <th>Asignado a</th>
+          <th>ID de oferta</th>
+          <th>Cliente</th>
+          <th>Operador</th>
+          <th>Estado de la oferta</th>
+          <th>Tipo de transporte</th>
+          <th>Fecha de creación</th>
+          <th>Precio</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td colspan="4">Aquí irá la tabla de ofertas.</td>
+        <tr v-if="isLoading">
+          <td colspan="7">Cargando ofertas...</td>
+        </tr>
+        <tr v-else-if="errorMessage">
+          <td colspan="7">{{ errorMessage }}</td>
+        </tr>
+        <tr v-else-if="offers.length === 0">
+          <td colspan="7">No hay ofertas para mostrar.</td>
+        </tr>
+        <tr v-else v-for="offer in offers" :key="offer.id">
+          <td>{{ offer.id }}</td>
+          <td>{{ offer.client || '-' }}</td>
+          <td>{{ offer.operador || '-' }}</td>
+          <td>{{ offer.estat || '-' }}</td>
+          <td>{{ offer.tipus_transport || '-' }}</td>
+          <td>{{ offer.data_creacio || '-' }}</td>
+          <td>{{ offer.preu ?? '-' }}</td>
         </tr>
       </tbody>
     </table>
   </section>
 </template>
+
+<script setup>
+import { onMounted, ref } from 'vue'
+
+const offers = ref([])
+const isLoading = ref(true)
+const errorMessage = ref('')
+
+const loadOffers = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const { data } = await window.axios.get('/api/offers')
+    offers.value = data.offers || []
+  } catch {
+    errorMessage.value = 'No se pudieron cargar las ofertas.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadOffers()
+})
+</script>
 
 <style scoped>
 .table-panel {

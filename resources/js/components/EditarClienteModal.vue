@@ -25,12 +25,6 @@
         <label for="edit-cif_nif">CIF/NIF</label>
         <input id="edit-cif_nif" v-model="form.cif_nif" type="text" required>
 
-        <label for="edit-adreca">Direccion</label>
-        <input id="edit-adreca" v-model="form.adreca" type="text">
-
-        <label for="edit-contacte">Contacto</label>
-        <input id="edit-contacte" v-model="form.contacte" type="text">
-
         <label for="edit-telefon">Telefono</label>
         <input id="edit-telefon" v-model="form.telefon" type="text">
 
@@ -59,8 +53,6 @@ const form = reactive({
   password: '',
   nom_empresa: '',
   cif_nif: '',
-  adreca: '',
-  contacte: '',
   telefon: '',
 })
 
@@ -71,8 +63,6 @@ const hydrateForm = () => {
   form.password = ''
   form.nom_empresa = props.client?.nom_empresa || ''
   form.cif_nif = props.client?.cif_nif || ''
-  form.adreca = props.client?.adreca || ''
-  form.contacte = props.client?.contacte || ''
   form.telefon = props.client?.telefon || ''
 }
 

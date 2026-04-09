@@ -17,7 +17,6 @@ import NavbarVertical from './NavbarVertical.vue'
 import NavbarHorizontal from './NavbarHorizontal.vue'
 import UsersTable from './UsersTable.vue'
 import ClientsTable from './ClientsTable.vue'
-import OperationsTable from './OperationsTable.vue'
 import IncidentsTable from './IncidentsTable.vue'
 
 const selectedSection = ref('Usuarios')
@@ -25,7 +24,6 @@ const selectedSection = ref('Usuarios')
 const sectionComponentMap = {
     Usuarios: UsersTable,
     Clientes: ClientsTable,
-    Operadores: OperationsTable,
     Ofertas: IncidentsTable,
 }
 

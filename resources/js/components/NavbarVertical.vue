@@ -26,7 +26,6 @@ import logoMultimar from '../../assets/multimar-logistics.png'
 import {
   UsersIcon,
   ClipboardDocumentListIcon,
-  UserGroupIcon,
   DocumentTextIcon
 } from '@heroicons/vue/24/outline'
 
@@ -37,7 +36,6 @@ const emit = defineEmits(['section-selected'])
 const menuItems = [
   { text: 'Usuarios', icon: UsersIcon },
   { text: 'Clientes', icon: ClipboardDocumentListIcon },
-  { text: 'Operadores', icon: UserGroupIcon },
   { text: 'Ofertas', icon: DocumentTextIcon },
 ]
 

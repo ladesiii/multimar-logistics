@@ -26,11 +26,9 @@ class ClientesController extends Controller
                     'nom' => $usuari?->nom,
                     'cognoms' => $usuari?->cognoms,
                     'nom_complet' => trim(($usuari?->nom ?? '') . ' ' . ($usuari?->cognoms ?? '')),
-                    'email' => $client->email,
+                    'email' => $usuari?->correu,
                     'nom_empresa' => $client->nom_empresa,
                     'cif_nif' => $client->cif_nif,
-                    'adreca' => $client->adreca,
-                    'contacte' => $client->contacte,
                     'telefon' => $client->telefon,
                 ];
             });
@@ -46,11 +44,9 @@ class ClientesController extends Controller
             'nom' => ['required', 'string', 'max:50'],
             'cognoms' => ['required', 'string', 'max:50'],
             'password' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:100', 'unique:clients,email', 'unique:usuaris,correu'],
+            'email' => ['required', 'email', 'max:100', 'unique:usuaris,correu'],
             'nom_empresa' => ['required', 'string', 'max:100'],
             'cif_nif' => ['required', 'string', 'max:20', 'unique:clients,cif_nif'],
-            'adreca' => ['nullable', 'string', 'max:255'],
-            'contacte' => ['nullable', 'string', 'max:100'],
             'telefon' => ['nullable', 'string', 'max:20'],
         ]);
 
@@ -67,9 +63,6 @@ class ClientesController extends Controller
                 'usuari_id' => $usuari->id,
                 'nom_empresa' => $validated['nom_empresa'],
                 'cif_nif' => $validated['cif_nif'],
-                'adreca' => $validated['adreca'] ?? null,
-                'contacte' => $validated['contacte'] ?? null,
-                'email' => $validated['email'],
                 'telefon' => $validated['telefon'] ?? null,
             ]);
         });
@@ -84,11 +77,9 @@ class ClientesController extends Controller
                 'nom' => $client->usuari?->nom,
                 'cognoms' => $client->usuari?->cognoms,
                 'nom_complet' => trim(($client->usuari?->nom ?? '') . ' ' . ($client->usuari?->cognoms ?? '')),
-                'email' => $client->email,
+                'email' => $client->usuari?->correu,
                 'nom_empresa' => $client->nom_empresa,
                 'cif_nif' => $client->cif_nif,
-                'adreca' => $client->adreca,
-                'contacte' => $client->contacte,
                 'telefon' => $client->telefon,
             ],
         ], 201);
@@ -109,7 +100,6 @@ class ClientesController extends Controller
                 'required',
                 'email',
                 'max:100',
-                Rule::unique('clients', 'email')->ignore($client->id),
                 Rule::unique('usuaris', 'correu')->ignore($client->usuari_id),
             ],
             'password' => ['nullable', 'string', 'max:255'],
@@ -120,8 +110,6 @@ class ClientesController extends Controller
                 'max:20',
                 Rule::unique('clients', 'cif_nif')->ignore($client->id),
             ],
-            'adreca' => ['nullable', 'string', 'max:255'],
-            'contacte' => ['nullable', 'string', 'max:100'],
             'telefon' => ['nullable', 'string', 'max:20'],
         ]);
 
@@ -139,9 +127,6 @@ class ClientesController extends Controller
 
             $client->nom_empresa = $validated['nom_empresa'];
             $client->cif_nif = $validated['cif_nif'];
-            $client->adreca = $validated['adreca'] ?? null;
-            $client->contacte = $validated['contacte'] ?? null;
-            $client->email = $validated['email'];
             $client->telefon = $validated['telefon'] ?? null;
             $client->save();
         });
@@ -156,11 +141,9 @@ class ClientesController extends Controller
                 'nom' => $client->usuari?->nom,
                 'cognoms' => $client->usuari?->cognoms,
                 'nom_complet' => trim(($client->usuari?->nom ?? '') . ' ' . ($client->usuari?->cognoms ?? '')),
-                'email' => $client->email,
+                'email' => $client->usuari?->correu,
                 'nom_empresa' => $client->nom_empresa,
                 'cif_nif' => $client->cif_nif,
-                'adreca' => $client->adreca,
-                'contacte' => $client->contacte,
                 'telefon' => $client->telefon,
             ],
         ]);

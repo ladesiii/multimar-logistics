@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClientesController;
+use App\Http\Controllers\OfertesController;
 use App\Http\Controllers\UsuarisController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/clients', [ClientesController::class, 'store']);
     Route::put('/clients/{client}', [ClientesController::class, 'update']);
     Route::delete('/clients/{client}', [ClientesController::class, 'destroy']);
+    Route::get('/offers', [OfertesController::class, 'index']);
+    Route::post('/offers', [OfertesController::class, 'store']);
+    Route::put('/offers/{offer}', [OfertesController::class, 'update']);
+    Route::delete('/offers/{offer}', [OfertesController::class, 'destroy']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
 });

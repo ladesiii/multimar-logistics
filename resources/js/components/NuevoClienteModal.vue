@@ -25,12 +25,6 @@
         <label for="cif_nif">CIF/NIF</label>
         <input id="cif_nif" v-model="form.cif_nif" type="text" required>
 
-        <label for="adreca">Direccion</label>
-        <input id="adreca" v-model="form.adreca" type="text">
-
-        <label for="contacte">Contacto</label>
-        <input id="contacte" v-model="form.contacte" type="text">
-
         <label for="telefon">Telefono</label>
         <input id="telefon" v-model="form.telefon" type="text">
 
@@ -52,8 +46,6 @@ const form = reactive({
   password: '',
   nom_empresa: '',
   cif_nif: '',
-  adreca: '',
-  contacte: '',
   telefon: '',
 })
 
@@ -74,10 +66,11 @@ const handleSubmit = () => {
 }
 
 .modal-card {
-  width: 340px;
+  width: 390px;
   border-radius: 12px;
-  background: #d9e1e7;
-  padding: 0.7rem;
+  background: #EAF3F8;
+  border: 1px solid #89C4F5;
+  padding: 0.9rem;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
 }
 
@@ -93,8 +86,8 @@ const handleSubmit = () => {
 }
 
 .modal-header h2 {
-  font-size: 1.45rem;
-  font-weight: 900;
+  font-size: 1.4rem;
+  font-weight: 800;
   margin: 0;
   letter-spacing: 0.01em;
 }
@@ -123,10 +116,10 @@ const handleSubmit = () => {
 }
 
 .modal-form input {
-  border: 1px solid #c4ced8;
-  background: #f3f6f9;
+  border: 1px solid #89C4F5;
+  background: #ffffff;
   border-radius: 6px;
-  height: 34px;
+  height: 38px;
   padding: 0 0.6rem;
 }
 
@@ -134,7 +127,8 @@ const handleSubmit = () => {
   margin-top: 0.85rem;
   border: none;
   border-radius: 8px;
-  height: 38px;
+  height: 42px;
+  font-size: 1rem;
   font-weight: 800;
   background: #09253b;
   color: #ffffff;

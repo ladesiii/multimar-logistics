@@ -2,7 +2,7 @@
   <section class="table-panel">
     <header class="table-header">
       <h1>Usuarios</h1>
-      <button type="button" class="add-user-btn" @click="isModalOpen = true">
+      <button type="button" class="add-entity-btn" @click="isModalOpen = true">
         Añadir usuario
       </button>
     </header>
@@ -219,20 +219,20 @@ const confirmDeleteUser = async () => {
   margin-bottom: 1rem;
 }
 
-.add-user-btn {
+.add-entity-btn {
   border: none;
   border-radius: 10px;
-  background-color: #09253B;
+  background-color: #09253b;
   color: #ffffff;
   font-weight: 700;
   font-size: 0.9rem;
-  padding: 0.6rem 0.8rem;
+  padding: 0.55rem 0.9rem;
   line-height: 1;
   cursor: pointer;
 }
 
-.add-user-btn:hover {
-  opacity: 90%;
+.add-entity-btn:hover {
+  opacity: 0.9;
 }
 
 .data-table {

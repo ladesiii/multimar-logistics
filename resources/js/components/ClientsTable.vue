@@ -2,8 +2,8 @@
   <section class="table-panel">
     <header class="table-header">
       <h1>Clientes</h1>
-      <button type="button" class="add-client-btn" @click="isModalOpen = true">
-        Anadir cliente
+      <button type="button" class="add-entity-btn" @click="isModalOpen = true">
+        Añadir cliente
       </button>
     </header>
 
@@ -13,33 +13,31 @@
           <th>ID</th>
           <th>Nombre</th>
           <th>Email</th>
+          <th>ID Usuario</th>
           <th>Empresa</th>
           <th>CIF/NIF</th>
-          <th>Contacto</th>
           <th>Telefono</th>
-          <th>Direccion</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="isLoading">
-          <td colspan="9">Cargando clientes...</td>
+          <td colspan="8">Cargando clientes...</td>
         </tr>
         <tr v-else-if="errorMessage">
-          <td colspan="9">{{ errorMessage }}</td>
+          <td colspan="8">{{ errorMessage }}</td>
         </tr>
         <tr v-else-if="clients.length === 0">
-          <td colspan="9">No hay clientes para mostrar.</td>
+          <td colspan="8">No hay clientes para mostrar.</td>
         </tr>
         <tr v-else v-for="client in clients" :key="client.id">
           <td>{{ client.id }}</td>
           <td>{{ client.nom_complet }}</td>
           <td>{{ client.email }}</td>
+          <td>{{ client.usuari_id }}</td>
           <td>{{ client.nom_empresa }}</td>
           <td>{{ client.cif_nif }}</td>
-          <td>{{ client.contacte || '-' }}</td>
           <td>{{ client.telefon || '-' }}</td>
-          <td>{{ client.adreca || '-' }}</td>
           <td class="actions-cell">
             <button type="button" class="icon-btn edit-btn" aria-label="Editar cliente" @click="openEditModal(client)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -146,8 +144,6 @@ const openEditModal = (client) => {
     email: client.email || '',
     nom_empresa: client.nom_empresa || '',
     cif_nif: client.cif_nif || '',
-    adreca: client.adreca || '',
-    contacte: client.contacte || '',
     telefon: client.telefon || '',
   }
   isEditModalOpen.value = true
@@ -231,17 +227,19 @@ const confirmDeleteClient = async () => {
   margin-bottom: 1rem;
 }
 
-.add-client-btn {
+.add-entity-btn {
   border: none;
   border-radius: 10px;
   background-color: #09253b;
   color: #ffffff;
   font-weight: 700;
+  font-size: 0.9rem;
   padding: 0.55rem 0.9rem;
+  line-height: 1;
   cursor: pointer;
 }
 
-.add-client-btn:hover {
+.add-entity-btn:hover {
   opacity: 0.9;
 }
 
