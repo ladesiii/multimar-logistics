@@ -24,6 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/clients/{client}', [ClientesController::class, 'update']);
     Route::delete('/clients/{client}', [ClientesController::class, 'destroy']);
     Route::get('/offers', [OfertesController::class, 'index']);
+    Route::get('/offers/{offer}', [OfertesController::class, 'show']);
+    Route::patch('/offers/{offer}/status', [OfertesController::class, 'updateStatus']);
     Route::post('/offers', [OfertesController::class, 'store']);
     Route::put('/offers/{offer}', [OfertesController::class, 'update']);
     Route::delete('/offers/{offer}', [OfertesController::class, 'destroy']);

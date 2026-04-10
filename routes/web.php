@@ -6,6 +6,8 @@ Route::get('/', function () {
     return view('login');
 });
 
-Route::get('/admin', function () {
+Route::get('/dashboard', function () {
     return view('dashboard');
 });
+
+Route::redirect('/admin', '/dashboard');

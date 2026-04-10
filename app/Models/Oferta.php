@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\EstatOferta;
+use App\Models\TipusIncoterm;
 use App\Models\TipusTransport;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -78,5 +79,10 @@ class Oferta extends Model
     public function tipusTransport(): BelongsTo
     {
         return $this->belongsTo(TipusTransport::class, 'tipus_transport_id');
+    }
+
+    public function tipusIncoterm(): BelongsTo
+    {
+        return $this->belongsTo(TipusIncoterm::class, 'tipus_incoterm_id');
     }
 }

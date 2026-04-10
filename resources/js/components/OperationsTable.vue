@@ -1,7 +1,7 @@
 <template>
   <section class="table-panel">
     <header class="table-header">
-      <h1>Operadores</h1>
+      <h1>Tracking</h1>
     </header>
 
     <table class="data-table">
