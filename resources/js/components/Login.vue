@@ -69,7 +69,7 @@ const handleLogin = async () => {
     localStorage.setItem('auth_user', JSON.stringify(data.user))
     window.axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
 
-    window.location.href = '/admin'
+    window.location.href = '/dashboard'
   } catch (error) {
     if (error.response?.status === 401) {
       errorMessage.value = 'Correo o contraseña incorrectos.'

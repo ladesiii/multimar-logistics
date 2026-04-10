@@ -2,40 +2,47 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
-        <h2>NUEVO CLIENTE</h2>
+        <h2>EDITAR CLIENTE</h2>
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
       <form class="modal-form" @submit.prevent="handleSubmit">
-        <label for="nom">Nombre</label>
-        <input id="nom" v-model="form.nom" type="text" required>
+        <label for="edit-nom">Nombre</label>
+        <input id="edit-nom" v-model="form.nom" type="text" required>
 
-        <label for="cognoms">Apellidos</label>
-        <input id="cognoms" v-model="form.cognoms" type="text" required>
+        <label for="edit-cognoms">Apellidos</label>
+        <input id="edit-cognoms" v-model="form.cognoms" type="text" required>
 
-        <label for="email">Correo electronico</label>
-        <input id="email" v-model="form.email" type="email" required>
+        <label for="edit-email">Correo electronico</label>
+        <input id="edit-email" v-model="form.email" type="email" required>
 
-        <label for="password">Contrasena</label>
-        <input id="password" v-model="form.password" type="password" required>
+        <label for="edit-password">Contrasena (opcional)</label>
+        <input id="edit-password" v-model="form.password" type="password" placeholder="Dejar vacio para no cambiar">
 
-        <label for="nom_empresa">Empresa</label>
-        <input id="nom_empresa" v-model="form.nom_empresa" type="text" required>
+        <label for="edit-nom_empresa">Empresa</label>
+        <input id="edit-nom_empresa" v-model="form.nom_empresa" type="text" required>
 
-        <label for="cif_nif">CIF/NIF</label>
-        <input id="cif_nif" v-model="form.cif_nif" type="text" required>
+        <label for="edit-cif_nif">CIF/NIF</label>
+        <input id="edit-cif_nif" v-model="form.cif_nif" type="text" required>
 
-        <label for="telefon">Telefono</label>
-        <input id="telefon" v-model="form.telefon" type="text">
+        <label for="edit-telefon">Telefono</label>
+        <input id="edit-telefon" v-model="form.telefon" type="text">
 
-        <button type="submit" class="submit-btn">Crear Cliente</button>
+        <button type="submit" class="submit-btn">Guardar cambios</button>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
+
+const props = defineProps({
+  client: {
+    type: Object,
+    required: true,
+  },
+})
 
 const emit = defineEmits(['close', 'submit'])
 
@@ -48,6 +55,24 @@ const form = reactive({
   cif_nif: '',
   telefon: '',
 })
+
+const hydrateForm = () => {
+  form.nom = props.client?.nom || ''
+  form.cognoms = props.client?.cognoms || ''
+  form.email = props.client?.email || ''
+  form.password = ''
+  form.nom_empresa = props.client?.nom_empresa || ''
+  form.cif_nif = props.client?.cif_nif || ''
+  form.telefon = props.client?.telefon || ''
+}
+
+watch(
+  () => props.client,
+  () => {
+    hydrateForm()
+  },
+  { immediate: true }
+)
 
 const handleSubmit = () => {
   emit('submit', { ...form })
