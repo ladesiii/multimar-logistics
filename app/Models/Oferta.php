@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\EstatOferta;
+use App\Models\TrackingStep;
 use App\Models\TipusIncoterm;
 use App\Models\TipusTransport;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,6 +27,7 @@ class Oferta extends Model
         'agent_comercial_id',
         'operador_id',
         'estat_oferta_id',
+        'tracking_step_id',
         'tipus_validacio_id',
         'transportista_id',
         'linia_transport_maritim_id',
@@ -50,6 +52,7 @@ class Oferta extends Model
             'data_creacio' => 'date',
             'data_validessa_inicial' => 'date',
             'data_validessa_final' => 'date',
+            'tracking_step_id' => 'integer',
             'pes_brut' => 'decimal:2',
             'volum' => 'decimal:2',
             'preu' => 'integer',
@@ -74,6 +77,11 @@ class Oferta extends Model
     public function estatOferta(): BelongsTo
     {
         return $this->belongsTo(EstatOferta::class, 'estat_oferta_id');
+    }
+
+    public function trackingStep(): BelongsTo
+    {
+        return $this->belongsTo(TrackingStep::class, 'tracking_step_id');
     }
 
     public function tipusTransport(): BelongsTo

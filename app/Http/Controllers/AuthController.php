@@ -6,51 +6,53 @@ use App\Models\Usuari;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
     public function login(Request $request): JsonResponse
     {
-        $credentials = $request->validate([
+        $credenciales = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = Usuari::with('rol')
-            ->where('correu', $credentials['email'])
+        $usuario = Usuari::with('rol')
+            ->where('correu', $credenciales['email'])
             ->first();
 
-        if (! $user) {
+        if (! $usuario) {
             return response()->json([
                 'message' => 'Las credenciales no son válidas.',
             ], 401);
         }
 
-        if (! Hash::check($credentials['password'], $user->contrasenya)) {
+        if (! Hash::check($credenciales['password'], $usuario->contrasenya)) {
             return response()->json([
                 'message' => 'Las credenciales no son válidas.',
             ], 401);
         }
 
-        $token = $user->createToken('multimar-api')->plainTextToken;
+        $token = $usuario->createToken('multimar-api')->plainTextToken;
 
         return response()->json([
             'message' => 'Login correcto.',
             'token_type' => 'Bearer',
             'token' => $token,
             'user' => [
-                'id' => $user->id,
-                'email' => $user->correu,
-                'name' => trim($user->nom . ' ' . $user->cognoms),
-                'nom' => $user->nom,
-                'cognoms' => $user->cognoms,
-                'rol_id' => $user->rol_id,
-                'rol' => $user->rol?->rol,
+                'id' => $usuario->id,
+                'email' => $usuario->correu,
+                'name' => trim($usuario->nom . ' ' . $usuario->cognoms),
+                'nom' => $usuario->nom,
+                'cognoms' => $usuario->cognoms,
+                'rol_id' => $usuario->rol_id,
+                'rol' => $usuario->rol?->rol,
             ],
         ]);
     }
 
-    public function me(Request $request): JsonResponse
+    public function usuarioAutenticado(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -63,16 +65,109 @@ class AuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request): JsonResponse
+    public function cerrarSesion(Request $request): JsonResponse
     {
         $user = $request->user();
+        $token = $user?->currentAccessToken();
 
-        if ($user && $user->currentAccessToken()) {
-            $user->currentAccessToken()->delete();
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
         }
 
         return response()->json([
             'message' => 'Sesión cerrada correctamente.',
+        ]);
+    }
+
+    public function actualizarPerfil(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'No autenticado.',
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'nom' => ['required', 'string', 'max:50'],
+            'cognoms' => ['required', 'string', 'max:50'],
+            'email' => [
+                'required',
+                'email',
+                'max:100',
+                Rule::unique('usuaris', 'correu')->ignore($user->id),
+            ],
+            'current_password' => ['nullable', 'string', 'max:255'],
+            'new_password' => ['nullable', 'string', 'min:6', 'max:255'],
+            'new_password_confirmation' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if (! empty($validated['new_password'])) {
+            if (empty($validated['current_password']) || ! Hash::check($validated['current_password'], $user->contrasenya)) {
+                return response()->json([
+                    'message' => 'La contraseña actual no es correcta.',
+                ], 422);
+            }
+
+            if (($validated['new_password'] ?? null) !== ($validated['new_password_confirmation'] ?? null)) {
+                return response()->json([
+                    'message' => 'La nueva contraseña y su confirmación no coinciden.',
+                ], 422);
+            }
+        }
+
+        $user->nom = $validated['nom'];
+        $user->cognoms = $validated['cognoms'];
+        $user->correu = $validated['email'];
+
+        if (! empty($validated['new_password'])) {
+            $user->contrasenya = $validated['new_password'];
+        }
+
+        $user->save();
+        $user->load('rol');
+
+        return response()->json([
+            'message' => 'Perfil actualizado correctamente.',
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->correu,
+                'name' => trim($user->nom . ' ' . $user->cognoms),
+                'nom' => $user->nom,
+                'cognoms' => $user->cognoms,
+                'rol_id' => $user->rol_id,
+                'rol' => $user->rol?->rol,
+            ],
+        ]);
+    }
+
+    public function verificarContrasenaPerfil(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'No autenticado.',
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'string', 'max:255'],
+        ]);
+
+        $isValid = Hash::check($validated['current_password'], $user->contrasenya);
+
+        if (! $isValid) {
+            return response()->json([
+                'message' => 'La contraseña actual no es correcta.',
+                'valid' => false,
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Contraseña verificada correctamente.',
+            'valid' => true,
         ]);
     }
 }

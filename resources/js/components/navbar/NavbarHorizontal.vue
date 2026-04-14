@@ -21,7 +21,7 @@
         </svg>
       </button>
 
-      <div class="user-profile">
+      <div class="user-profile" role="button" tabindex="0" title="Editar perfil" @click="goToProfile" @keydown.enter="goToProfile" @keydown.space.prevent="goToProfile">
         <div class="user-icon-wrapper">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="nav-icon">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -103,6 +103,10 @@ const handleLogout = async () => {
   }
 }
 
+const goToProfile = () => {
+  window.location.href = '/editarperfil'
+}
+
 onMounted(() => {
   const storedUser = localStorage.getItem('auth_user')
 
@@ -135,109 +139,103 @@ onBeforeUnmount(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Alinea todo a la derecha */
-  padding: 0 30px;
-  box-sizing: border-box;
+  justify-content: flex-end;
+  padding: 0 2rem;
   position: relative;
+  flex-shrink: 0;
 }
 
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 25px; /* Espacio entre iconos */
+  gap: 0.85rem;
 }
 
 .nav-icon-btn {
-  background: none;
+  background: transparent;
   border: none;
   padding: 0;
   cursor: pointer;
   color: #ffffff;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  transition: opacity 0.2s;
-}
-
-.nav-icon-btn:hover {
-  opacity: 0.8;
+  justify-content: center;
 }
 
 .nav-icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 }
 
-/* Contenedor de Usuario */
 .user-profile {
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  outline: none;
+  color: #ffffff;
+}
+
+.user-profile:focus-visible {
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(137, 196, 245, 0.45);
 }
 
 .user-name {
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700; /* Negrita como en la imagen */
-  font-size: 15px;
-}
-
-.user-icon-wrapper {
-  color: #ffffff;
-  display: flex;
-  align-items: center;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .settings-dropdown {
   position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0.75rem;
-  width: min(260px, calc(100vw - 1.5rem));
-  background: #09253b;
-  color: #ffffff;
-  border: 1px solid #1e4c70;
+  top: 68px;
+  right: 2rem;
+  background: #ffffff;
+  border: 1px solid #d9e4ee;
   border-radius: 12px;
-  box-shadow: 0 12px 28px rgba(0, 21, 41, 0.35);
-  padding: 0.9rem;
-  z-index: 40;
-  display: grid;
-  gap: 0.55rem;
+  padding: 1rem;
+  min-width: 220px;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.18);
+  z-index: 30;
 }
 
 .settings-dropdown h3 {
-  margin: 0 0 0.2rem;
-  font-size: 1.9rem;
-  line-height: 1;
-  font-weight: 800;
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+  color: #002855;
 }
 
 .settings-dropdown label {
+  display: block;
+  font-size: 0.85rem;
   font-weight: 700;
-  font-size: 1.05rem;
+  color: #31516b;
+  margin-bottom: 0.35rem;
 }
 
 .settings-select {
-  border: 2px solid #0b1f2f;
+  width: 100%;
+  border: 1px solid #c9d8e3;
   border-radius: 8px;
-  height: 2.2rem;
+  min-height: 40px;
   padding: 0 0.65rem;
-  background: #f4f7fa;
-  color: #111827;
-  font-weight: 700;
+  margin-bottom: 0.75rem;
 }
 
 .logout-btn {
-  border: 2px solid #0b1f2f;
+  width: 100%;
+  border: none;
   border-radius: 8px;
-  background: #f4f7fa;
-  color: #111827;
-  font-size: 1.06rem;
-  font-weight: 700;
-  height: 2.2rem;
+  min-height: 40px;
+  background: #09253b;
+  color: #ffffff;
+  font-weight: 800;
   cursor: pointer;
 }
 
 .logout-btn:hover {
   background: #ffffff;
 }
+
 </style>

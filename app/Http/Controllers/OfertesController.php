@@ -3,18 +3,44 @@
 namespace App\Http\Controllers;
 
 use App\Models\Oferta;
+use App\Models\TrackingStep;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class OfertesController extends Controller
 {
+    public function opcionesFormulario(): JsonResponse
+    {
+        $estados = $this->obtenerOpciones('estats_ofertes', ['estat', 'nom', 'tipus']);
+
+        return response()->json([
+            'tipus_transports' => $this->obtenerOpciones('tipus_transports', ['tipus', 'nom', 'codi']),
+            'tipus_fluxes' => $this->obtenerOpciones('tipus_fluxes', ['tipus', 'nom', 'codi']),
+            'tipus_carrega' => $this->obtenerOpciones('tipus_carrega', ['tipus', 'nom', 'codi']),
+            'tipus_incoterms' => $this->obtenerOpciones('tipus_incoterms', ['codi', 'nom']),
+            'tipus_validacions' => $this->obtenerOpciones('tipus_validacions', ['tipus', 'nom', 'codi']),
+            'estats_ofertes' => $estados,
+            'clients' => $this->obtenerOpciones('clients', ['nom_empresa', 'cif_nif']),
+            'transportistes' => $this->obtenerOpciones('transportistes', ['nom']),
+            'linies_transport_maritim' => $this->obtenerOpciones('linies_transport_maritim', ['nom']),
+            'ports' => $this->obtenerOpciones('ports', ['nom', 'codi']),
+            'aeroports' => $this->obtenerOpciones('aeroports', ['codi', 'nom']),
+            'tipus_contenidors' => $this->obtenerOpciones('tipus_contenidors', ['tipus', 'nom', 'codi']),
+            'status_defaults' => [
+                'pending_id' => $this->buscarIdEstadoPorPalabras($estados, ['pend']),
+                'rejected_id' => $this->buscarIdEstadoPorPalabras($estados, ['rebutj', 'rechaz']),
+            ],
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        $offersQuery = Oferta::with([
+        $consultaOfertas = Oferta::with([
             'client:id,nom_empresa',
             'operador:id,nom,cognoms',
             'estatOferta:id,estat',
@@ -23,13 +49,23 @@ class OfertesController extends Controller
         ])
             ->orderByDesc('id');
 
-        if (! $this->isAdminUser($user)) {
-            $offersQuery->where('operador_id', $user?->id);
+        if ($this->esUsuarioOperador($user)) {
+            $consultaOfertas->where('operador_id', $user?->id);
+        } elseif ($this->esUsuarioCliente($user)) {
+            $idCliente = $this->obtenerIdClientePorUsuario($user);
+
+            if (! $idCliente) {
+                return response()->json([
+                    'offers' => [],
+                ]);
+            }
+
+            $consultaOfertas->where('client_id', $idCliente);
         }
 
-        $offers = $offersQuery
+        $offers = $consultaOfertas
             ->get()
-            ->map(fn (Oferta $offer) => $this->serializeOffer($offer));
+            ->map(fn (Oferta $offer) => $this->serializarOferta($offer));
 
         return response()->json([
             'offers' => $offers,
@@ -39,27 +75,39 @@ class OfertesController extends Controller
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
+        $idEstadoPendiente = $this->resolverIdEstadoPendiente();
 
-        if (! $this->isAdminUser($user) && $user) {
+        if (! $idEstadoPendiente) {
+            return response()->json([
+                'message' => 'No se pudo determinar el estado Pendiente para crear la oferta.',
+            ], 422);
+        }
+
+        if (! $this->esUsuarioAdmin($user) && $user) {
             $request->merge([
                 'operador_id' => $user->id,
+                'estat_oferta_id' => $idEstadoPendiente,
+            ]);
+        } else {
+            $request->merge([
+                'estat_oferta_id' => $idEstadoPendiente,
             ]);
         }
 
-        $validated = $request->validate($this->rules());
+        $validated = $request->validate($this->reglas());
 
         $offer = Oferta::create($validated);
         $offer->load(['client:id,nom_empresa', 'operador:id,nom,cognoms', 'estatOferta:id,estat', 'tipusTransport:id,tipus', 'tipusIncoterm:id,codi,nom']);
 
         return response()->json([
             'message' => 'Oferta creada correctamente.',
-            'offer' => $this->serializeOffer($offer),
+            'offer' => $this->serializarOferta($offer),
         ], 201);
     }
 
     public function update(Request $request, Oferta $offer): JsonResponse
     {
-        if (! $this->canAccessOffer($request, $offer)) {
+        if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
                 'message' => 'No tienes permisos para gestionar esta oferta.',
             ], 403);
@@ -67,41 +115,47 @@ class OfertesController extends Controller
 
         $user = $request->user();
 
-        if (! $this->isAdminUser($user) && $user) {
+        if (! $this->esUsuarioAdmin($user) && $user) {
             $request->merge([
                 'operador_id' => $user->id,
             ]);
         }
 
-        $validated = $request->validate($this->rules($offer));
+        $validated = $request->validate($this->reglas($offer));
 
         $offer->update($validated);
         $offer->load(['client:id,nom_empresa', 'operador:id,nom,cognoms', 'estatOferta:id,estat', 'tipusTransport:id,tipus', 'tipusIncoterm:id,codi,nom']);
 
         return response()->json([
             'message' => 'Oferta actualizada correctamente.',
-            'offer' => $this->serializeOffer($offer),
+            'offer' => $this->serializarOferta($offer),
         ]);
     }
 
     public function show(Request $request, Oferta $offer): JsonResponse
     {
-        if (! $this->canAccessOffer($request, $offer)) {
+        if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
                 'message' => 'No tienes permisos para ver esta oferta.',
             ], 403);
         }
 
         return response()->json([
-            'offer' => $this->serializeOfferDetail($offer->id),
+            'offer' => $this->serializarDetalleOferta($offer->id),
         ]);
     }
 
-    public function updateStatus(Request $request, Oferta $offer): JsonResponse
+    public function actualizarEstado(Request $request, Oferta $offer): JsonResponse
     {
-        if (! $this->canAccessOffer($request, $offer)) {
+        if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
                 'message' => 'No tienes permisos para gestionar esta oferta.',
+            ], 403);
+        }
+
+        if (! $this->puedeGestionarEstadoOferta($request)) {
+            return response()->json([
+                'message' => 'Solo el cliente puede aceptar o rechazar ofertas.',
             ], 403);
         }
 
@@ -117,13 +171,22 @@ class OfertesController extends Controller
         }
 
         $offer->estat_oferta_id = (int) $validated['estat_oferta_id'];
+        $existeColumnaPasoTracking = $this->soportaColumnaPasoTracking();
 
         if ((int) $validated['estat_oferta_id'] === 3) {
             $offer->rao_rebuig = trim((string) ($validated['rao_rebuig'] ?? ''));
+
+            if ($existeColumnaPasoTracking) {
+                $offer->tracking_step_id = null;
+            }
         }
 
         if ((int) $validated['estat_oferta_id'] === 2) {
             $offer->rao_rebuig = null;
+
+            if ($existeColumnaPasoTracking) {
+                $offer->tracking_step_id = $this->resolverIdPasoTrackingInicial();
+            }
         }
 
         $offer->save();
@@ -132,13 +195,13 @@ class OfertesController extends Controller
             'message' => (int) $validated['estat_oferta_id'] === 2
                 ? 'Oferta aceptada correctamente.'
                 : 'Oferta rechazada correctamente.',
-            'offer' => $this->serializeOfferDetail($offer->id),
+            'offer' => $this->serializarDetalleOferta($offer->id),
         ]);
     }
 
     public function destroy(Request $request, Oferta $offer): JsonResponse
     {
-        if (! $this->canAccessOffer($request, $offer)) {
+        if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
                 'message' => 'No tienes permisos para eliminar esta oferta.',
             ], 403);
@@ -151,7 +214,91 @@ class OfertesController extends Controller
         ]);
     }
 
-    private function rules(?Oferta $offer = null): array
+    public function listarTracking(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'tracking' => [],
+            ]);
+        }
+
+        $query = DB::table('ofertes as o')
+            ->leftJoin('tipus_transports as tt', 'o.tipus_transport_id', '=', 'tt.id')
+            ->leftJoin('tipus_incoterms as ti', 'o.tipus_incoterm_id', '=', 'ti.id')
+            ->leftJoin('ports as po', 'o.port_origen_id', '=', 'po.id')
+            ->leftJoin('ports as pd', 'o.port_desti_id', '=', 'pd.id')
+            ->leftJoin('aeroports as ao', 'o.aeroport_origen_id', '=', 'ao.id')
+            ->leftJoin('aeroports as ad', 'o.aeroport_desti_id', '=', 'ad.id')
+            ->where('o.estat_oferta_id', 2)
+            ->orderByDesc('o.id');
+
+        $tieneColumnaPasoTracking = $this->soportaColumnaPasoTracking();
+
+        if ($tieneColumnaPasoTracking) {
+            $query->leftJoin('tracking_steps as ts', 'o.tracking_step_id', '=', 'ts.id');
+        }
+
+        if ($this->esUsuarioOperador($user)) {
+            $query->where('o.operador_id', $user->id);
+        } elseif ($this->esUsuarioCliente($user)) {
+            $clientId = $this->obtenerIdClientePorUsuario($user);
+
+            if (! $clientId) {
+                return response()->json([
+                    'tracking' => [],
+                ]);
+            }
+
+            $query->where('o.client_id', $clientId);
+        }
+
+        $selectColumns = [
+            'o.id',
+            'o.data_creacio',
+            'tt.tipus as medi',
+            'ti.codi as incoterm_codi',
+            'ti.nom as incoterm_nom',
+            'po.nom as port_origen',
+            'pd.nom as port_desti',
+            'ao.codi as aeroport_origen_codi',
+            'ao.nom as aeroport_origen_nom',
+            'ad.codi as aeroport_desti_codi',
+            'ad.nom as aeroport_desti_nom',
+        ];
+
+        if ($tieneColumnaPasoTracking) {
+            $selectColumns[] = DB::raw('COALESCE(ts.nom, \'\') as tracking_step_nom');
+        }
+
+        $rows = $query->get($selectColumns);
+
+        $trackingState = $this->resolverNombrePasoTrackingInicial();
+
+        $tracking = $rows->map(function ($row) use ($trackingState) {
+            $incotermCode = trim((string) ($row->incoterm_codi ?? ''));
+            $incotermName = trim((string) ($row->incoterm_nom ?? ''));
+            $incoterm = trim($incotermCode . ($incotermCode !== '' && $incotermName !== '' ? ' - ' : '') . $incotermName);
+
+            return [
+                'id' => (int) $row->id,
+                'ruta' => $this->construirRutaTracking($row),
+                'medio' => trim((string) ($row->medi ?? '')),
+                'incoterm' => $incoterm,
+                'estado' => trim((string) ($row->tracking_step_nom ?? '')) !== ''
+                    ? trim((string) $row->tracking_step_nom)
+                    : $trackingState,
+                'fecha_creacion' => $row->data_creacio,
+            ];
+        })->values();
+
+        return response()->json([
+            'tracking' => $tracking,
+        ]);
+    }
+
+    private function reglas(?Oferta $offer = null): array
     {
         return [
             'tipus_transport_id' => ['required', 'integer', Rule::exists('tipus_transports', 'id')],
@@ -181,7 +328,7 @@ class OfertesController extends Controller
         ];
     }
 
-    private function serializeOffer(Oferta $offer): array
+    private function serializarOferta(Oferta $offer): array
     {
         $incotermCode = trim((string) ($offer->tipusIncoterm?->codi ?? ''));
         $incotermName = trim((string) ($offer->tipusIncoterm?->nom ?? ''));
@@ -196,6 +343,7 @@ class OfertesController extends Controller
             'client_id' => $offer->client_id,
             'operador_id' => $offer->operador_id,
             'estat_oferta_id' => $offer->estat_oferta_id,
+            'tracking_step_id' => $offer->tracking_step_id,
             'tipus_validacio_id' => $offer->tipus_validacio_id,
             'data_creacio' => optional($offer->data_creacio)->format('Y-m-d'),
             'preu' => $offer->preu,
@@ -207,7 +355,7 @@ class OfertesController extends Controller
         ];
     }
 
-    private function serializeOfferDetail(int $offerId): array
+    private function serializarDetalleOferta(int $offerId): array
     {
         $offer = DB::table('ofertes as o')
             ->leftJoin('clients as c', 'o.client_id', '=', 'c.id')
@@ -307,7 +455,7 @@ class OfertesController extends Controller
         ];
     }
 
-    private function canAccessOffer(Request $request, Oferta $offer): bool
+    private function puedeAccederOferta(Request $request, Oferta $offer): bool
     {
         $user = $request->user();
 
@@ -315,14 +463,35 @@ class OfertesController extends Controller
             return false;
         }
 
-        if ($this->isAdminUser($user)) {
+        if ($this->esUsuarioAdmin($user)) {
             return true;
         }
 
-        return (int) $offer->operador_id === (int) $user->id;
+        if ($this->esUsuarioOperador($user)) {
+            return (int) $offer->operador_id === (int) $user->id;
+        }
+
+        if ($this->esUsuarioCliente($user)) {
+            $clientId = $this->obtenerIdClientePorUsuario($user);
+
+            if (! $clientId) {
+                return false;
+            }
+
+            return (int) $offer->client_id === (int) $clientId;
+        }
+
+        return false;
     }
 
-    private function isAdminUser($user): bool
+    private function puedeGestionarEstadoOferta(Request $request): bool
+    {
+        $user = $request->user();
+
+        return $this->esUsuarioCliente($user) || $this->esUsuarioAdmin($user);
+    }
+
+    private function esUsuarioAdmin($user): bool
     {
         if (! $user) {
             return false;
@@ -333,5 +502,186 @@ class OfertesController extends Controller
         return (int) $user->id === 1
             || (int) $user->rol_id === 1
             || str_contains($roleName, 'admin');
+    }
+
+    private function esUsuarioOperador($user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $roleName = strtolower((string) ($user->rol?->rol ?? ''));
+
+        return (int) $user->rol_id === 2
+            || str_contains($roleName, 'operador')
+            || str_contains($roleName, 'operator');
+    }
+
+    private function esUsuarioCliente($user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $roleName = strtolower((string) ($user->rol?->rol ?? ''));
+
+        return (int) $user->rol_id === 3
+            || str_contains($roleName, 'client');
+    }
+
+    private function obtenerIdClientePorUsuario($user): ?int
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $user->loadMissing('client');
+
+        return $user->client?->id ? (int) $user->client->id : null;
+    }
+
+    private function obtenerOpciones(string $table, array $labelColumns): array
+    {
+        $rows = DB::table($table)
+            ->orderBy('id')
+            ->get();
+
+        return $rows
+            ->map(function ($row) use ($labelColumns) {
+                $data = (array) $row;
+                $id = (int) ($data['id'] ?? 0);
+                $parts = [];
+
+                foreach ($labelColumns as $column) {
+                    $value = trim((string) ($data[$column] ?? ''));
+
+                    if ($value !== '') {
+                        $parts[] = $value;
+                    }
+                }
+
+                if ($parts === []) {
+                    foreach ($data as $column => $value) {
+                        if ($column === 'id') {
+                            continue;
+                        }
+
+                        $text = trim((string) $value);
+
+                        if ($text !== '') {
+                            $parts[] = $text;
+                            break;
+                        }
+                    }
+                }
+
+                return [
+                    'id' => $id,
+                    'label' => $parts !== [] ? implode(' - ', $parts) : ('ID ' . $id),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function buscarIdEstadoPorPalabras(array $statuses, array $keywords): ?int
+    {
+        foreach ($statuses as $status) {
+            $label = $this->normalizarTexto((string) ($status['label'] ?? ''));
+
+            foreach ($keywords as $keyword) {
+                if (str_contains($label, $this->normalizarTexto($keyword))) {
+                    return (int) ($status['id'] ?? 0);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizarTexto(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+
+        return str_replace(
+            ['à', 'á', 'è', 'é', 'ì', 'í', 'ò', 'ó', 'ù', 'ú', 'ü', 'ñ'],
+            ['a', 'a', 'e', 'e', 'i', 'i', 'o', 'o', 'u', 'u', 'u', 'n'],
+            $normalized
+        );
+    }
+
+    private function resolverNombrePasoTrackingInicial(): string
+    {
+        $firstStep = TrackingStep::query()
+            ->orderBy('ordre')
+            ->orderBy('id')
+            ->value('nom');
+
+        return trim((string) $firstStep) !== ''
+            ? trim((string) $firstStep)
+            : 'En tracking';
+    }
+
+    private function resolverIdPasoTrackingInicial(): ?int
+    {
+        $firstStepId = TrackingStep::query()
+            ->orderBy('ordre')
+            ->orderBy('id')
+            ->value('id');
+
+        return $firstStepId ? (int) $firstStepId : null;
+    }
+
+    private function construirRutaTracking($row): string
+    {
+        $portOrigin = trim((string) ($row->port_origen ?? ''));
+        $portDest = trim((string) ($row->port_desti ?? ''));
+
+        if ($portOrigin !== '' || $portDest !== '') {
+            return trim(($portOrigin !== '' ? $portOrigin : '-') . ' -> ' . ($portDest !== '' ? $portDest : '-'));
+        }
+
+        $airportOrigin = trim((string) ($row->aeroport_origen_codi ?? ''));
+        $airportDest = trim((string) ($row->aeroport_desti_codi ?? ''));
+
+        if ($airportOrigin !== '' || $airportDest !== '') {
+            return trim(($airportOrigin !== '' ? $airportOrigin : '-') . ' -> ' . ($airportDest !== '' ? $airportDest : '-'));
+        }
+
+        $airportOriginName = trim((string) ($row->aeroport_origen_nom ?? ''));
+        $airportDestName = trim((string) ($row->aeroport_desti_nom ?? ''));
+
+        if ($airportOriginName !== '' || $airportDestName !== '') {
+            return trim(($airportOriginName !== '' ? $airportOriginName : '-') . ' -> ' . ($airportDestName !== '' ? $airportDestName : '-'));
+        }
+
+        return '-';
+    }
+
+    private function resolverIdEstadoPendiente(): ?int
+    {
+        $rows = DB::table('estats_ofertes')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($rows as $row) {
+            $data = (array) $row;
+            $label = $this->normalizarTexto(implode(' ', [
+                (string) ($data['estat'] ?? ''),
+                (string) ($data['nom'] ?? ''),
+                (string) ($data['tipus'] ?? ''),
+            ]));
+
+            if (str_contains($label, 'pend')) {
+                return (int) ($data['id'] ?? 0);
+            }
+        }
+
+        return isset($rows[0]?->id) ? (int) $rows[0]->id : null;
+    }
+
+    private function soportaColumnaPasoTracking(): bool
+    {
+        return Schema::hasColumn('ofertes', 'tracking_step_id');
     }
 }

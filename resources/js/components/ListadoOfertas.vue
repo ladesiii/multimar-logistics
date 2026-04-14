@@ -2,14 +2,22 @@
   <section class="table-panel">
     <header class="table-header">
       <h1>Ofertas</h1>
+      <button
+        v-if="canCreateOffers"
+        type="button"
+        class="add-entity-btn"
+        @click="openCreateModal"
+      >
+        Crear oferta
+      </button>
     </header>
 
     <table class="data-table">
       <thead>
         <tr>
           <th>ID de oferta</th>
-          <th>Cliente</th>
-          <th>Operador</th>
+          <th v-if="showClientColumn">Cliente</th>
+          <th v-if="showOperatorColumn">Operador</th>
           <th>Estado de la oferta</th>
           <th>Tipo de transporte</th>
           <th>Incoterm</th>
@@ -20,18 +28,18 @@
       </thead>
       <tbody>
         <tr v-if="isLoading">
-          <td colspan="9">Cargando ofertas...</td>
+          <td :colspan="tableColumnsCount">Cargando ofertas...</td>
         </tr>
         <tr v-else-if="errorMessage">
-          <td colspan="9">{{ errorMessage }}</td>
+          <td :colspan="tableColumnsCount">{{ errorMessage }}</td>
         </tr>
         <tr v-else-if="offers.length === 0">
-          <td colspan="9">No hay ofertas para mostrar.</td>
+          <td :colspan="tableColumnsCount">No hay ofertas para mostrar.</td>
         </tr>
         <tr v-else v-for="offer in offers" :key="offer.id">
           <td>{{ offer.id }}</td>
-          <td>{{ offer.client || '-' }}</td>
-          <td>{{ offer.operador || '-' }}</td>
+          <td v-if="showClientColumn">{{ offer.client || '-' }}</td>
+          <td v-if="showOperatorColumn">{{ offer.operador || '-' }}</td>
           <td>
             <span class="status-badge" :class="getOfferStatusClass(offer)">
               {{ getOfferStatusLabel(offer) }}
@@ -48,7 +56,13 @@
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
-            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar oferta" @click="openDeleteModal(offer)">
+            <button
+              v-if="canDeleteOffers"
+              type="button"
+              class="icon-btn delete-btn"
+              aria-label="Eliminar oferta"
+              @click="openDeleteModal(offer)"
+            >
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 .92h6a1 1 0 0 0 1-.92L17 7" />
               </svg>
@@ -65,6 +79,8 @@
       :error-message="viewErrorMessage"
       :is-status-updating="isStatusUpdating"
       :status-action-error="statusActionError"
+      :can-manage-status="canManageOfferStatus"
+      :current-role="currentRole"
       @close="closeViewModal"
       @accept="updateOfferStatus(2)"
       @reject="openRejectModal"
@@ -86,15 +102,25 @@
       @submit="submitRejectOffer"
     />
 
+    <NuevaOfertaModal
+      v-if="isCreateModalOpen"
+      :options="offerFormOptions"
+      :is-loading="isFormOptionsLoading"
+      :error-message="formOptionsError"
+      @close="closeCreateModal"
+      @submit="handleCreateOffer"
+    />
+
     <p v-if="submitError" class="submit-error">{{ submitError }}</p>
   </section>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import OfertaDetalleModal from './OfertaDetalleModal.vue'
-import EliminarOfertaModal from './EliminarOfertaModal.vue'
-import RechazarOfertaModal from './RechazarOfertaModal.vue'
+import { computed, onMounted, ref } from 'vue'
+import OfertaDetalleModal from './modals/OfertaDetalleModal.vue'
+import EliminarOfertaModal from './modals/EliminarOfertaModal.vue'
+import RechazarOfertaModal from './modals/RechazarOfertaModal.vue'
+import NuevaOfertaModal from './modals/NuevaOfertaModal.vue'
 
 const offers = ref([])
 const isLoading = ref(true)
@@ -110,6 +136,49 @@ const viewErrorMessage = ref('')
 const isStatusUpdating = ref(false)
 const statusActionError = ref('')
 const rejectModalError = ref('')
+const isCreateModalOpen = ref(false)
+const isFormOptionsLoading = ref(false)
+const formOptionsError = ref('')
+const offerFormOptions = ref({})
+
+const currentRole = computed(() => {
+  const rawUser = localStorage.getItem('auth_user')
+
+  if (!rawUser) {
+    return ''
+  }
+
+  try {
+    const user = JSON.parse(rawUser)
+    const roleName = String(user?.rol || '').toLowerCase()
+    const roleId = Number(user?.rol_id || 0)
+
+    if (roleId === 1 || roleName.includes('admin')) {
+      return 'admin'
+    }
+
+    if (roleId === 2 || roleName.includes('operador') || roleName.includes('operator')) {
+      return 'operador'
+    }
+
+    if (roleId === 3 || roleName.includes('client')) {
+      return 'cliente'
+    }
+  } catch {
+    return ''
+  }
+
+  return ''
+})
+
+const canDeleteOffers = computed(() => ['admin', 'operador'].includes(currentRole.value))
+const canManageOfferStatus = computed(() => ['admin', 'cliente'].includes(currentRole.value))
+const canCreateOffers = computed(() => currentRole.value === 'operador')
+const showClientColumn = computed(() => currentRole.value !== 'cliente')
+const showOperatorColumn = computed(() => currentRole.value !== 'operador')
+const tableColumnsCount = computed(() => {
+  return 7 + (showClientColumn.value ? 1 : 0) + (showOperatorColumn.value ? 1 : 0)
+})
 
 const loadOffers = async () => {
   isLoading.value = true
@@ -122,6 +191,20 @@ const loadOffers = async () => {
     errorMessage.value = 'No se pudieron cargar las ofertas.'
   } finally {
     isLoading.value = false
+  }
+}
+
+const loadFormOptions = async () => {
+  isFormOptionsLoading.value = true
+  formOptionsError.value = ''
+
+  try {
+    const { data } = await window.axios.get('/api/offers/form-options')
+    offerFormOptions.value = data || {}
+  } catch {
+    formOptionsError.value = 'No se pudieron cargar los campos para crear la oferta.'
+  } finally {
+    isFormOptionsLoading.value = false
   }
 }
 
@@ -180,39 +263,28 @@ const openViewModal = async (offer) => {
   } finally {
     isViewLoading.value = false
   }
-
-  if (!selectedOffer.value && !viewErrorMessage.value) {
-    viewErrorMessage.value = 'No se encontró el detalle de la oferta.'
-  }
-
-  isViewModalOpen.value = true
 }
 
 const closeViewModal = () => {
+  isViewModalOpen.value = false
   selectedOffer.value = null
   viewErrorMessage.value = ''
   statusActionError.value = ''
-  rejectModalError.value = ''
-  isViewLoading.value = false
-  isStatusUpdating.value = false
-  isRejectModalOpen.value = false
-  isViewModalOpen.value = false
 }
 
 const updateOfferStatus = async (statusId) => {
-  if (!selectedOffer.value?.id || isStatusUpdating.value) {
+  if (!selectedOffer.value?.id) {
     return
   }
 
-  statusActionError.value = ''
   isStatusUpdating.value = true
+  statusActionError.value = ''
 
   try {
-    const { data } = await window.axios.patch(`/api/offers/${selectedOffer.value.id}/status`, {
+    await window.axios.patch(`/api/offers/${selectedOffer.value.id}/status`, {
       estat_oferta_id: statusId,
     })
-
-    selectedOffer.value = data.offer || selectedOffer.value
+    closeViewModal()
     await loadOffers()
   } catch (error) {
     statusActionError.value = error.response?.data?.message || 'No se pudo actualizar el estado de la oferta.'
@@ -227,41 +299,28 @@ const openRejectModal = () => {
 }
 
 const closeRejectModal = () => {
-  if (isStatusUpdating.value) {
-    return
-  }
-
-  rejectModalError.value = ''
   isRejectModalOpen.value = false
+  rejectModalError.value = ''
 }
 
-const submitRejectOffer = async (reason) => {
-  if (!reason) {
-    rejectModalError.value = 'Debes indicar un motivo para rechazar la oferta.'
+const submitRejectOffer = async ({ rao_rebuig }) => {
+  if (!selectedOffer.value?.id) {
     return
   }
 
-  if (!selectedOffer.value?.id || isStatusUpdating.value) {
-    return
-  }
-
-  statusActionError.value = ''
-  rejectModalError.value = ''
   isStatusUpdating.value = true
+  rejectModalError.value = ''
 
   try {
-    const { data } = await window.axios.patch(`/api/offers/${selectedOffer.value.id}/status`, {
+    await window.axios.patch(`/api/offers/${selectedOffer.value.id}/status`, {
       estat_oferta_id: 3,
-      rao_rebuig: reason,
+      rao_rebuig,
     })
-
-    selectedOffer.value = data.offer || selectedOffer.value
-    isRejectModalOpen.value = false
+    closeRejectModal()
+    closeViewModal()
     await loadOffers()
   } catch (error) {
-    const message = error.response?.data?.message || 'No se pudo actualizar el estado de la oferta.'
-    statusActionError.value = message
-    rejectModalError.value = message
+    rejectModalError.value = error.response?.data?.message || 'No se pudo rechazar la oferta.'
   } finally {
     isStatusUpdating.value = false
   }
@@ -276,6 +335,48 @@ const openDeleteModal = (offer) => {
 const closeDeleteModal = () => {
   isDeleteModalOpen.value = false
   offerToDelete.value = null
+}
+
+const openCreateModal = async () => {
+  submitError.value = ''
+  isCreateModalOpen.value = true
+
+  if (Object.keys(offerFormOptions.value || {}).length > 0) {
+    return
+  }
+
+  await loadFormOptions()
+}
+
+const closeCreateModal = () => {
+  isCreateModalOpen.value = false
+}
+
+const handleCreateOffer = async (payload) => {
+  submitError.value = ''
+
+  try {
+    await window.axios.post('/api/offers', {
+      ...payload,
+      data_creacio: new Date().toISOString().slice(0, 10),
+    })
+
+    closeCreateModal()
+    await loadOffers()
+  } catch (error) {
+    if (error.response?.status === 422) {
+      const apiMessage = error.response?.data?.message
+      const validationErrors = error.response?.data?.errors
+      const firstValidationError = validationErrors
+        ? Object.values(validationErrors)[0]?.[0]
+        : ''
+
+      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario de oferta.'
+      return
+    }
+
+    submitError.value = error.response?.data?.message || 'No se pudo crear la oferta.'
+  }
 }
 
 const confirmDeleteOffer = async () => {
@@ -307,7 +408,30 @@ const confirmDeleteOffer = async () => {
   font-size: 1.2rem;
   font-weight: 800;
   color: #002855;
+  margin: 0;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 1rem;
+}
+
+.add-entity-btn {
+  border: none;
+  border-radius: 10px;
+  background-color: #09253b;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.add-entity-btn:hover {
+  opacity: 0.9;
 }
 
 .data-table {
@@ -319,7 +443,6 @@ const confirmDeleteOffer = async () => {
 .data-table td {
   text-align: left;
   padding: 0.75rem;
-  vertical-align: middle;
   border-bottom: 1px solid #e6edf3;
 }
 
@@ -328,40 +451,8 @@ const confirmDeleteOffer = async () => {
   font-weight: 700;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.72rem;
-  border-radius: 999px;
-  border: 1px solid #d9e4ee;
-  background: #f8fbfe;
-  font-size: 0.9rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.status-pending {
-  border-color: #f5a524;
-  color: #b45309;
-  background: #fff7e6;
-}
-
-.status-accepted {
-  border-color: #22c55e;
-  color: #166534;
-  background: #ecfdf3;
-}
-
-.status-rejected {
-  border-color: #ef4444;
-  color: #991b1b;
-  background: #fef2f2;
-}
-
 .actions-cell {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
   gap: 0.5rem;
 }
 
@@ -391,9 +482,36 @@ const confirmDeleteOffer = async () => {
 }
 
 .submit-error {
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   color: #b42318;
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.status-pending {
+  background: #fff7e6;
+  border: 1px solid #f5a524;
+  color: #b45309;
+}
+
+.status-accepted {
+  background: #ecfdf3;
+  border: 1px solid #22c55e;
+  color: #166534;
+}
+
+.status-rejected {
+  background: #fef2f2;
+  border: 1px solid #ef4444;
+  color: #991b1b;
 }
 </style>
