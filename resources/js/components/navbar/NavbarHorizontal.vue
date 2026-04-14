@@ -191,51 +191,58 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 68px;
   right: 2rem;
-  background: #ffffff;
-  border: 1px solid #d9e4ee;
-  border-radius: 12px;
-  padding: 1rem;
-  min-width: 220px;
+  background: #072a45;
+  border: 1px solid #0a3b60;
+  border-radius: 10px;
+  padding: 0.8rem;
+  min-width: 250px;
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.18);
   z-index: 30;
 }
 
 .settings-dropdown h3 {
-  margin: 0 0 0.85rem;
-  font-size: 1rem;
-  color: #002855;
+  margin: 0 0 0.7rem;
+  font-size: 1.7rem;
+  line-height: 1;
+  font-weight: 900;
+  color: #ffffff;
 }
 
 .settings-dropdown label {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #31516b;
-  margin-bottom: 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.55rem;
 }
 
 .settings-select {
   width: 100%;
-  border: 1px solid #c9d8e3;
-  border-radius: 8px;
-  min-height: 40px;
-  padding: 0 0.65rem;
-  margin-bottom: 0.75rem;
+  border: 2px solid #09131d;
+  border-radius: 10px;
+  min-height: 34px;
+  padding: 0 0.85rem;
+  margin-bottom: 0.7rem;
+  background: #f6f7f9;
+  color: #111111;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .logout-btn {
   width: 100%;
-  border: none;
-  border-radius: 8px;
-  min-height: 40px;
-  background: #09253b;
-  color: #ffffff;
+  border: 2px solid #09131d;
+  border-radius: 10px;
+  min-height: 34px;
+  background: #f6f7f9;
+  color: #111111;
+  font-size: 0.95rem;
   font-weight: 800;
   cursor: pointer;
 }
 
 .logout-btn:hover {
-  background: #ffffff;
+  background: #e9edf3;
 }
 
 </style>

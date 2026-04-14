@@ -55,7 +55,7 @@ const emit = defineEmits(['close', 'submit'])
 const reason = ref('')
 
 const handleSubmit = () => {
-  emit('submit', reason.value.trim())
+  emit('submit', { rao_rebuig: reason.value.trim() })
 }
 </script>
 
