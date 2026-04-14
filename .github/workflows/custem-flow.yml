@@ -1,0 +1,31 @@
+name: Notify Team on Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  notify:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send email notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "✅ PR mergeado: ${{ github.event.pull_request.title }}"
+          to: mvidaln2425@politecnics.barcelona
+          from: ${{ secrets.EMAIL_USERNAME }}
+          body: |
+            Se ha fusionado un Pull Request en main.
+
+            PR: ${{ github.event.pull_request.title }}
+            Autor: ${{ github.event.pull_request.user.login }}
+            Fecha: ${{ github.event.pull_request.merged_at }}
+            Enlace: ${{ github.event.pull_request.html_url }}
