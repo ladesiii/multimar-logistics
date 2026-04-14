@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import logo from '../../assets/multimar-logistics.png'
+import logo from '../../../assets/multimar-logistics.png'
 </script>
 
 <style scoped>

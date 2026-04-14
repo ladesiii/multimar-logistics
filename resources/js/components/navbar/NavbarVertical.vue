@@ -6,7 +6,7 @@
 
     <nav class="menu-nav">
       <a
-        v-for="item in normalizedMenuItems"
+        v-for="item in menuItems"
         :key="item.text"
         href="#"
         @click.prevent="setActive(item.text)"
@@ -22,9 +22,7 @@
 </template>
 
 <script setup>
-import logoMultimar from '../../assets/multimar-logistics.png'
-import { computed } from 'vue'
-import { Squares2X2Icon } from '@heroicons/vue/24/outline'
+import logoMultimar from '../../../assets/multimar-logistics.png'
 
 const props = defineProps({
   menuItems: {
@@ -38,17 +36,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['section-selected'])
-
-const normalizedMenuItems = computed(() => {
-  const items = Array.isArray(props.menuItems) ? [...props.menuItems] : []
-  const hasDashboard = items.some((item) => item?.text === 'Dashboard')
-
-  if (hasDashboard) {
-    return items
-  }
-
-  return [{ text: 'Dashboard', icon: Squares2X2Icon }, ...items]
-})
 
 const setActive = (itemText) => {
   emit('section-selected', itemText)

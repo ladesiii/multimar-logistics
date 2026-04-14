@@ -44,8 +44,8 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import NavbarLogin from './NavbarLogin.vue'
-import logo from '../../assets/multimar-logistics.png'
+import NavbarLogin from '../navbar/NavbarLogin.vue'
+import logo from '../../../assets/multimar-logistics.png'
 
 const form = reactive({
   email: '',

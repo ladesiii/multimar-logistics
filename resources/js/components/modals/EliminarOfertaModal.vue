@@ -7,7 +7,7 @@
       </header>
 
       <p class="confirm-text">
-        Seguro que quieres eliminar la oferta #{{ offer?.id }}{{ offer?.client ? ` de ${offer.client}` : '' }}?
+        Seguro que quieres eliminar la oferta #{{ offer?.id }}?
       </p>
 
       <div class="confirm-actions">
@@ -43,8 +43,8 @@ defineEmits(['close', 'confirm'])
 .modal-card {
   width: 320px;
   border-radius: 12px;
-  background: #eaf3f8;
-  border: 1px solid #89c4f5;
+  background: #EAF3F8;
+  border: 1px solid #89C4F5;
   padding: 0.9rem;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
 }

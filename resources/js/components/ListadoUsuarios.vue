@@ -1,9 +1,9 @@
 <template>
   <section class="table-panel">
     <header class="table-header">
-      <h1>Clientes</h1>
+      <h1>Usuarios</h1>
       <button type="button" class="add-entity-btn" @click="isModalOpen = true">
-        Añadir cliente
+        Añadir usuario
       </button>
     </header>
 
@@ -13,38 +13,32 @@
           <th>ID</th>
           <th>Nombre</th>
           <th>Email</th>
-          <th>ID Usuario</th>
-          <th>Empresa</th>
-          <th>CIF/NIF</th>
-          <th>Telefono</th>
+          <th>Rol</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="isLoading">
-          <td colspan="8">Cargando clientes...</td>
+          <td colspan="5">Cargando usuarios...</td>
         </tr>
         <tr v-else-if="errorMessage">
-          <td colspan="8">{{ errorMessage }}</td>
+          <td colspan="5">{{ errorMessage }}</td>
         </tr>
-        <tr v-else-if="clients.length === 0">
-          <td colspan="8">No hay clientes para mostrar.</td>
+        <tr v-else-if="users.length === 0">
+          <td colspan="5">No hay usuarios para mostrar.</td>
         </tr>
-        <tr v-else v-for="client in clients" :key="client.id">
-          <td>{{ client.id }}</td>
-          <td>{{ client.nom_complet }}</td>
-          <td>{{ client.email }}</td>
-          <td>{{ client.usuari_id }}</td>
-          <td>{{ client.nom_empresa }}</td>
-          <td>{{ client.cif_nif }}</td>
-          <td>{{ client.telefon || '-' }}</td>
+        <tr v-else v-for="user in users" :key="user.id">
+          <td>{{ user.id }}</td>
+          <td>{{ user.nom_complet }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.rol }}</td>
           <td class="actions-cell">
-            <button type="button" class="icon-btn edit-btn" aria-label="Editar cliente" @click="openEditModal(client)">
+            <button type="button" class="icon-btn edit-btn" aria-label="Editar usuario" @click="openEditModal(user)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 3.487a2.1 2.1 0 1 1 2.97 2.97L9.23 17.06 5 18l.939-4.23 10.923-10.283Z" />
               </svg>
             </button>
-            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar cliente" @click="openDeleteModal(client)">
+            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar usuario" @click="openDeleteModal(user)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 .92h6a1 1 0 0 0 1-.92L17 7" />
               </svg>
@@ -54,24 +48,24 @@
       </tbody>
     </table>
 
-    <NuevoClienteModal
+    <NuevoUsuarioModal
       v-if="isModalOpen"
       @close="isModalOpen = false"
-      @submit="handleCreateClient"
+      @submit="handleCreateUser"
     />
 
-    <EditarClienteModal
-      v-if="isEditModalOpen && selectedClient"
-      :client="selectedClient"
+    <EditarUsuarioModal
+      v-if="isEditModalOpen && selectedUser"
+      :user="selectedUser"
       @close="isEditModalOpen = false"
-      @submit="handleEditClient"
+      @submit="handleEditUser"
     />
 
-    <EliminarClienteModal
-      v-if="isDeleteModalOpen && clientToDelete"
-      :client="clientToDelete"
+    <EliminarUsuarioModal
+      v-if="isDeleteModalOpen && userToDelete"
+      :user="userToDelete"
       @close="closeDeleteModal"
-      @confirm="confirmDeleteClient"
+      @confirm="confirmDeleteUser"
     />
 
     <p v-if="submitError" class="submit-error">{{ submitError }}</p>
@@ -80,45 +74,45 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import NuevoClienteModal from './NuevoClienteModal.vue'
-import EditarClienteModal from './EditarClienteModal.vue'
-import EliminarClienteModal from './EliminarClienteModal.vue'
+import NuevoUsuarioModal from './modals/NuevoUsuarioModal.vue'
+import EditarUsuarioModal from './modals/EditarUsuarioModal.vue'
+import EliminarUsuarioModal from './modals/EliminarUsuarioModal.vue'
 
-const clients = ref([])
+const users = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const isModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
-const selectedClient = ref(null)
-const clientToDelete = ref(null)
+const selectedUser = ref(null)
+const userToDelete = ref(null)
 const submitError = ref('')
 
-const loadClients = async () => {
+const loadUsers = async () => {
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    const { data } = await window.axios.get('/api/clients')
-    clients.value = data.clients || []
+    const { data } = await window.axios.get('/api/users')
+    users.value = data.users || []
   } catch {
-    errorMessage.value = 'No se pudieron cargar los clientes.'
+    errorMessage.value = 'No se pudieron cargar los usuarios.'
   } finally {
     isLoading.value = false
   }
 }
 
 onMounted(() => {
-  loadClients()
+  loadUsers()
 })
 
-const handleCreateClient = async (clientData) => {
+const handleCreateUser = async (userData) => {
   submitError.value = ''
 
   try {
-    await window.axios.post('/api/clients', clientData)
+    await window.axios.post('/api/users', userData)
     isModalOpen.value = false
-    await loadClients()
+    await loadUsers()
   } catch (error) {
     if (error.response?.status === 422) {
       const apiMessage = error.response?.data?.message
@@ -131,36 +125,34 @@ const handleCreateClient = async (clientData) => {
       return
     }
 
-    submitError.value = 'No se pudo crear el cliente.'
+    submitError.value = 'No se pudo crear el usuario.'
   }
 }
 
-const openEditModal = (client) => {
+const openEditModal = (user) => {
   submitError.value = ''
-  selectedClient.value = {
-    id: client.id,
-    nom: client.nom || '',
-    cognoms: client.cognoms || '',
-    email: client.email || '',
-    nom_empresa: client.nom_empresa || '',
-    cif_nif: client.cif_nif || '',
-    telefon: client.telefon || '',
+  selectedUser.value = {
+    id: user.id,
+    nom: user.nom || '',
+    cognoms: user.cognoms || '',
+    email: user.email || '',
+    rol_id: user.rol_id || 2,
   }
   isEditModalOpen.value = true
 }
 
-const handleEditClient = async (clientData) => {
-  if (!selectedClient.value?.id) {
+const handleEditUser = async (userData) => {
+  if (!selectedUser.value?.id) {
     return
   }
 
   submitError.value = ''
 
   try {
-    await window.axios.put(`/api/clients/${selectedClient.value.id}`, clientData)
+    await window.axios.put(`/api/users/${selectedUser.value.id}`, userData)
     isEditModalOpen.value = false
-    selectedClient.value = null
-    await loadClients()
+    selectedUser.value = null
+    await loadUsers()
   } catch (error) {
     if (error.response?.status === 422) {
       const apiMessage = error.response?.data?.message
@@ -173,34 +165,34 @@ const handleEditClient = async (clientData) => {
       return
     }
 
-    submitError.value = 'No se pudo actualizar el cliente.'
+    submitError.value = 'No se pudo actualizar el usuario.'
   }
 }
 
-const openDeleteModal = (client) => {
+const openDeleteModal = (user) => {
   submitError.value = ''
-  clientToDelete.value = client
+  userToDelete.value = user
   isDeleteModalOpen.value = true
 }
 
 const closeDeleteModal = () => {
   isDeleteModalOpen.value = false
-  clientToDelete.value = null
+  userToDelete.value = null
 }
 
-const confirmDeleteClient = async () => {
-  if (!clientToDelete.value?.id) {
+const confirmDeleteUser = async () => {
+  if (!userToDelete.value?.id) {
     return
   }
 
   submitError.value = ''
 
   try {
-    await window.axios.delete(`/api/clients/${clientToDelete.value.id}`)
+    await window.axios.delete(`/api/users/${userToDelete.value.id}`)
     closeDeleteModal()
-    await loadClients()
+    await loadUsers()
   } catch {
-    submitError.value = 'No se pudo eliminar el cliente.'
+    submitError.value = 'No se pudo eliminar el usuario.'
   }
 }
 </script>
@@ -291,9 +283,8 @@ const confirmDeleteClient = async () => {
 }
 
 .submit-error {
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   color: #b42318;
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 </style>

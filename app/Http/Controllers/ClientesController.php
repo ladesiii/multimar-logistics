@@ -56,7 +56,7 @@ class ClientesController extends Controller
                 'cognoms' => $validated['cognoms'],
                 'correu' => $validated['email'],
                 'contrasenya' => $validated['password'],
-                'rol_id' => 2,
+                'rol_id' => 3,
             ]);
 
             return Cliente::create([

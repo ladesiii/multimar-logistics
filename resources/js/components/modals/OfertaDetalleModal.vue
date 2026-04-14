@@ -133,7 +133,7 @@
           </section>
 
           <div class="offer-state-panel">
-            <div v-if="isPendingOffer" class="offer-action-buttons">
+            <div v-if="isPendingOffer && canManageStatus" class="offer-action-buttons">
               <button
                 type="button"
                 class="decision-btn accept-offer-btn"
@@ -150,6 +150,11 @@
               >
                 Rechazar oferta
               </button>
+            </div>
+
+            <div v-else-if="isPendingOffer && currentRole === 'operador'" class="offer-resolution-message pending" role="status">
+              <strong>Oferta pendiente de tramitacion.</strong>
+              <span>Todavia no se ha tramitado la oferta.</span>
             </div>
 
             <div v-else-if="isAcceptedOffer" class="offer-resolution-message accepted" role="status">
@@ -179,6 +184,11 @@ const props = defineProps({
   errorMessage: String,
   isStatusUpdating: Boolean,
   statusActionError: String,
+  canManageStatus: Boolean,
+  currentRole: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['close', 'accept', 'reject'])
@@ -467,6 +477,12 @@ const getOfferStatusClass = (offer) => {
   background: #fef2f2;
   border-color: #ef4444;
   color: #991b1b;
+}
+
+.offer-resolution-message.pending {
+  background: #fff7e6;
+  border-color: #f5a524;
+  color: #b45309;
 }
 
 .status-action-error {
