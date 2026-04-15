@@ -84,6 +84,7 @@ const adminMenuItems = [
 
 const operatorMenuItems = [
     { text: 'Dashboard', icon: Squares2X2Icon },
+    { text: 'Clientes', icon: ClipboardDocumentListIcon },
     { text: 'Ofertas', icon: DocumentTextIcon },
     { text: 'Tracking', icon: TruckIcon },
 ]

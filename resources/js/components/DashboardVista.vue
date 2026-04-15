@@ -5,10 +5,9 @@
       <p>Resumen de tu logistica.</p>
     </header>
 
-    <p v-if="isLoading" class="state-message">Cargando resumen...</p>
-    <p v-else-if="errorMessage" class="state-message error">{{ errorMessage }}</p>
+    <p v-if="errorMessage" class="state-message error">{{ errorMessage }}</p>
 
-    <div v-else class="overview-cards">
+    <div v-if="!isLoading && !errorMessage" class="overview-cards">
       <article class="overview-card total">
         <div class="card-top">
           <h2>Total de ofertas</h2>
@@ -55,18 +54,14 @@
     </div>
 
     <section class="tracking-section">
-      <h2>Tracking</h2>
-      <div class="tracking-grid">
-        <article class="tracking-card">Proximamente: Tracking 1</article>
-        <article class="tracking-card">Proximamente: Tracking 2</article>
-        <article class="tracking-card">Proximamente: Tracking 3</article>
-      </div>
+      <ListadoTracking />
     </section>
   </section>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import ListadoTracking from './ListadoTracking.vue'
 
 const isLoading = ref(true)
 const errorMessage = ref('')
@@ -220,40 +215,5 @@ onMounted(() => {
 
 .tracking-section {
   margin-top: 1.2rem;
-}
-
-.tracking-section h2 {
-  margin: 0;
-  color: #002855;
-  font-size: 1.1rem;
-  font-weight: 800;
-}
-
-.tracking-grid {
-  margin-top: 0.7rem;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem;
-}
-
-.tracking-card {
-  border: 1px dashed #b6cadc;
-  border-radius: 12px;
-  background: #f8fbff;
-  color: #31516b;
-  font-size: 0.9rem;
-  font-weight: 700;
-  min-height: 88px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 0.75rem;
-}
-
-@media (max-width: 900px) {
-  .tracking-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>
