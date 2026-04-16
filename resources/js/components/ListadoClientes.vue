@@ -102,39 +102,42 @@ const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   return primerErrorValidacion || mensajeApi || mensajePorDefecto
 }
 
-const cargarClientes = async () => {
+const cargarClientes = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  try {
-    const { data } = await window.axios.get('/api/clients')
-    clientes.value = data.clients || []
-  } catch {
-    mensajeError.value = 'No se pudieron cargar los clientes.'
-  } finally {
-    estaCargando.value = false
-  }
+  window.axios.get('/api/clients')
+    .then(({ data }) => {
+      clientes.value = data.clients || []
+    })
+    .catch(() => {
+      mensajeError.value = 'No se pudieron cargar los clientes.'
+    })
+    .finally(() => {
+      estaCargando.value = false
+    })
 }
 
 onMounted(() => {
   cargarClientes()
 })
 
-const crearCliente = async (datosCliente) => {
+const crearCliente = (datosCliente) => {
   errorEnvio.value = ''
 
-  try {
-    await window.axios.post('/api/clients', datosCliente)
-    modalNuevoAbierto.value = false
-    await cargarClientes()
-  } catch (error) {
-    if (error.response?.status === 422) {
-      errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
-      return
-    }
+  window.axios.post('/api/clients', datosCliente)
+    .then(() => {
+      modalNuevoAbierto.value = false
+      cargarClientes()
+    })
+    .catch((error) => {
+      if (error.response?.status === 422) {
+        errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
+        return
+      }
 
-    errorEnvio.value = 'No se pudo crear el cliente.'
-  }
+      errorEnvio.value = 'No se pudo crear el cliente.'
+    })
 }
 
 const abrirModalEditar = (cliente) => {
@@ -151,26 +154,27 @@ const abrirModalEditar = (cliente) => {
   modalEditarAbierto.value = true
 }
 
-const editarCliente = async (datosCliente) => {
+const editarCliente = (datosCliente) => {
   if (!clienteSeleccionado.value?.id) {
     return
   }
 
   errorEnvio.value = ''
 
-  try {
-    await window.axios.put(`/api/clients/${clienteSeleccionado.value.id}`, datosCliente)
-    modalEditarAbierto.value = false
-    clienteSeleccionado.value = null
-    await cargarClientes()
-  } catch (error) {
-    if (error.response?.status === 422) {
-      errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
-      return
-    }
+  window.axios.put(`/api/clients/${clienteSeleccionado.value.id}`, datosCliente)
+    .then(() => {
+      modalEditarAbierto.value = false
+      clienteSeleccionado.value = null
+      cargarClientes()
+    })
+    .catch((error) => {
+      if (error.response?.status === 422) {
+        errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
+        return
+      }
 
-    errorEnvio.value = 'No se pudo actualizar el cliente.'
-  }
+      errorEnvio.value = 'No se pudo actualizar el cliente.'
+    })
 }
 
 const abrirModalEliminar = (cliente) => {
@@ -184,20 +188,21 @@ const cerrarModalEliminar = () => {
   clienteAEliminar.value = null
 }
 
-const confirmarEliminarCliente = async () => {
+const confirmarEliminarCliente = () => {
   if (!clienteAEliminar.value?.id) {
     return
   }
 
   errorEnvio.value = ''
 
-  try {
-    await window.axios.delete(`/api/clients/${clienteAEliminar.value.id}`)
-    cerrarModalEliminar()
-    await cargarClientes()
-  } catch {
-    errorEnvio.value = 'No se pudo eliminar el cliente.'
-  }
+  window.axios.delete(`/api/clients/${clienteAEliminar.value.id}`)
+    .then(() => {
+      cerrarModalEliminar()
+      cargarClientes()
+    })
+    .catch(() => {
+      errorEnvio.value = 'No se pudo eliminar el cliente.'
+    })
 }
 </script>
 

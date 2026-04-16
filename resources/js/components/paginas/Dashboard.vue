@@ -133,7 +133,7 @@ const gestionarSeleccionSeccion = (nombreSeccion) => {
     seccionSeleccionada.value = nombreSeccion
 }
 
-onMounted(async () => {
+onMounted(() => {
     const tokenSesion = localStorage.getItem('auth_token')
 
     if (!tokenSesion) {
@@ -143,45 +143,50 @@ onMounted(async () => {
 
     usuarioActual.value = cargarUsuarioDesdeStorage()
 
-    try {
-        // La API confirma que el token sigue siendo válido y devuelve el usuario real.
-        const { data } = await window.axios.get('/api/user')
-        const usuarioApi = data?.user ?? null
+    // La API confirma que el token sigue siendo válido y devuelve el usuario real.
+    window.axios.get('/api/user')
+        .then(({ data }) => {
+            const usuarioApi = data?.user ?? null
 
-        if (!usuarioApi) {
-            throw new Error('Usuario no disponible')
-        }
+            if (!usuarioApi) {
+                throw new Error('Usuario no disponible')
+            }
 
-        usuarioActual.value = {
-            id: usuarioApi.id,
-            email: usuarioApi.correu,
-            name: [usuarioApi.nom, usuarioApi.cognoms].filter(Boolean).join(' ').trim(),
-            nom: usuarioApi.nom,
-            cognoms: usuarioApi.cognoms,
-            rol_id: usuarioApi.rol_id,
-            rol: usuarioApi.rol?.rol,
-        }
+            usuarioActual.value = {
+                id: usuarioApi.id,
+                email: usuarioApi.correu,
+                name: [usuarioApi.nom, usuarioApi.cognoms].filter(Boolean).join(' ').trim(),
+                nom: usuarioApi.nom,
+                cognoms: usuarioApi.cognoms,
+                rol_id: usuarioApi.rol_id,
+                rol: usuarioApi.rol?.rol,
+            }
 
-        localStorage.setItem('auth_user', JSON.stringify(usuarioActual.value))
-    } catch {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('auth_user')
-        delete window.axios.defaults.headers.common.Authorization
-        window.location.href = '/'
-        return
-    }
+            localStorage.setItem('auth_user', JSON.stringify(usuarioActual.value))
+        })
+        .catch(() => {
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('auth_user')
+            delete window.axios.defaults.headers.common.Authorization
+            window.location.href = '/'
+        })
+        .finally(() => {
+            if (!usuarioActual.value) {
+                return
+            }
 
-    if (!tipoRol.value) {
-        estaAutorizado.value = false
-        comprobandoSesion.value = false
-        return
-    }
+            if (!tipoRol.value) {
+                estaAutorizado.value = false
+                comprobandoSesion.value = false
+                return
+            }
 
-    if (seccionesPermitidas.value.length > 0) {
-        seccionSeleccionada.value = seccionesPermitidas.value[0]
-    }
+            if (seccionesPermitidas.value.length > 0) {
+                seccionSeleccionada.value = seccionesPermitidas.value[0]
+            }
 
-    comprobandoSesion.value = false
+            comprobandoSesion.value = false
+        })
 })
 </script>
 

@@ -96,39 +96,42 @@ const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   return primerErrorValidacion || mensajeApi || mensajePorDefecto
 }
 
-const cargarUsuarios = async () => {
+const cargarUsuarios = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  try {
-    const { data } = await window.axios.get('/api/users')
-    usuarios.value = data.users || []
-  } catch {
-    mensajeError.value = 'No se pudieron cargar los usuarios.'
-  } finally {
-    estaCargando.value = false
-  }
+  window.axios.get('/api/users')
+    .then(({ data }) => {
+      usuarios.value = data.users || []
+    })
+    .catch(() => {
+      mensajeError.value = 'No se pudieron cargar los usuarios.'
+    })
+    .finally(() => {
+      estaCargando.value = false
+    })
 }
 
 onMounted(() => {
   cargarUsuarios()
 })
 
-const crearUsuario = async (datosUsuario) => {
+const crearUsuario = (datosUsuario) => {
   errorEnvio.value = ''
 
-  try {
-    await window.axios.post('/api/users', datosUsuario)
-    modalNuevoAbierto.value = false
-    await cargarUsuarios()
-  } catch (error) {
-    if (error.response?.status === 422) {
-      errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
-      return
-    }
+  window.axios.post('/api/users', datosUsuario)
+    .then(() => {
+      modalNuevoAbierto.value = false
+      cargarUsuarios()
+    })
+    .catch((error) => {
+      if (error.response?.status === 422) {
+        errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
+        return
+      }
 
-    errorEnvio.value = 'No se pudo crear el usuario.'
-  }
+      errorEnvio.value = 'No se pudo crear el usuario.'
+    })
 }
 
 const abrirModalEditar = (usuario) => {
@@ -143,26 +146,27 @@ const abrirModalEditar = (usuario) => {
   modalEditarAbierto.value = true
 }
 
-const editarUsuario = async (datosUsuario) => {
+const editarUsuario = (datosUsuario) => {
   if (!usuarioSeleccionado.value?.id) {
     return
   }
 
   errorEnvio.value = ''
 
-  try {
-    await window.axios.put(`/api/users/${usuarioSeleccionado.value.id}`, datosUsuario)
-    modalEditarAbierto.value = false
-    usuarioSeleccionado.value = null
-    await cargarUsuarios()
-  } catch (error) {
-    if (error.response?.status === 422) {
-      errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
-      return
-    }
+  window.axios.put(`/api/users/${usuarioSeleccionado.value.id}`, datosUsuario)
+    .then(() => {
+      modalEditarAbierto.value = false
+      usuarioSeleccionado.value = null
+      cargarUsuarios()
+    })
+    .catch((error) => {
+      if (error.response?.status === 422) {
+        errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
+        return
+      }
 
-    errorEnvio.value = 'No se pudo actualizar el usuario.'
-  }
+      errorEnvio.value = 'No se pudo actualizar el usuario.'
+    })
 }
 
 const abrirModalEliminar = (usuario) => {
@@ -176,20 +180,21 @@ const cerrarModalEliminar = () => {
   usuarioAEliminar.value = null
 }
 
-const confirmarEliminarUsuario = async () => {
+const confirmarEliminarUsuario = () => {
   if (!usuarioAEliminar.value?.id) {
     return
   }
 
   errorEnvio.value = ''
 
-  try {
-    await window.axios.delete(`/api/users/${usuarioAEliminar.value.id}`)
-    cerrarModalEliminar()
-    await cargarUsuarios()
-  } catch {
-    errorEnvio.value = 'No se pudo eliminar el usuario.'
-  }
+  window.axios.delete(`/api/users/${usuarioAEliminar.value.id}`)
+    .then(() => {
+      cerrarModalEliminar()
+      cargarUsuarios()
+    })
+    .catch(() => {
+      errorEnvio.value = 'No se pudo eliminar el usuario.'
+    })
 }
 </script>
 

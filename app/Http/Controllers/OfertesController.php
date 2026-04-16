@@ -96,7 +96,32 @@ class OfertesController extends Controller
 
         $validated = $request->validate($this->reglas());
 
-        $offer = Oferta::create($validated);
+        $offer = new Oferta();
+        $offer->tipus_transport_id = $validated['tipus_transport_id'];
+        $offer->tipus_fluxe_id = $validated['tipus_fluxe_id'];
+        $offer->tipus_carrega_id = $validated['tipus_carrega_id'];
+        $offer->tipus_incoterm_id = $validated['tipus_incoterm_id'];
+        $offer->client_id = $validated['client_id'];
+        $offer->agent_comercial_id = $validated['agent_comercial_id'] ?? null;
+        $offer->operador_id = $validated['operador_id'];
+        $offer->estat_oferta_id = $validated['estat_oferta_id'];
+        $offer->tipus_validacio_id = $validated['tipus_validacio_id'];
+        $offer->transportista_id = $validated['transportista_id'] ?? null;
+        $offer->linia_transport_maritim_id = $validated['linia_transport_maritim_id'] ?? null;
+        $offer->port_origen_id = $validated['port_origen_id'] ?? null;
+        $offer->port_desti_id = $validated['port_desti_id'] ?? null;
+        $offer->aeroport_origen_id = $validated['aeroport_origen_id'] ?? null;
+        $offer->aeroport_desti_id = $validated['aeroport_desti_id'] ?? null;
+        $offer->tipus_contenidor_id = $validated['tipus_contenidor_id'] ?? null;
+        $offer->pes_brut = $validated['pes_brut'] ?? null;
+        $offer->volum = $validated['volum'] ?? null;
+        $offer->comentaris = $validated['comentaris'] ?? null;
+        $offer->rao_rebuig = $validated['rao_rebuig'] ?? null;
+        $offer->data_creacio = $validated['data_creacio'];
+        $offer->data_validessa_inicial = $validated['data_validessa_inicial'] ?? null;
+        $offer->data_validessa_final = $validated['data_validessa_final'] ?? null;
+        $offer->preu = $validated['preu'] ?? null;
+        $offer->save();
         $offer->load(['client:id,nom_empresa', 'operador:id,nom,cognoms', 'estatOferta:id,estat', 'tipusTransport:id,tipus', 'tipusIncoterm:id,codi,nom']);
 
         return response()->json([
@@ -105,8 +130,14 @@ class OfertesController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Oferta $offer): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
+        $offer = Oferta::find($id);
+
+        if (! $offer) {
+            return response()->json(['message' => 'Oferta no encontrada.'], 404);
+        }
+
         if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
                 'message' => 'No tienes permisos para gestionar esta oferta.',
@@ -123,7 +154,31 @@ class OfertesController extends Controller
 
         $validated = $request->validate($this->reglas($offer));
 
-        $offer->update($validated);
+        $offer->tipus_transport_id = $validated['tipus_transport_id'];
+        $offer->tipus_fluxe_id = $validated['tipus_fluxe_id'];
+        $offer->tipus_carrega_id = $validated['tipus_carrega_id'];
+        $offer->tipus_incoterm_id = $validated['tipus_incoterm_id'];
+        $offer->client_id = $validated['client_id'];
+        $offer->agent_comercial_id = $validated['agent_comercial_id'] ?? null;
+        $offer->operador_id = $validated['operador_id'];
+        $offer->estat_oferta_id = $validated['estat_oferta_id'];
+        $offer->tipus_validacio_id = $validated['tipus_validacio_id'];
+        $offer->transportista_id = $validated['transportista_id'] ?? null;
+        $offer->linia_transport_maritim_id = $validated['linia_transport_maritim_id'] ?? null;
+        $offer->port_origen_id = $validated['port_origen_id'] ?? null;
+        $offer->port_desti_id = $validated['port_desti_id'] ?? null;
+        $offer->aeroport_origen_id = $validated['aeroport_origen_id'] ?? null;
+        $offer->aeroport_desti_id = $validated['aeroport_desti_id'] ?? null;
+        $offer->tipus_contenidor_id = $validated['tipus_contenidor_id'] ?? null;
+        $offer->pes_brut = $validated['pes_brut'] ?? null;
+        $offer->volum = $validated['volum'] ?? null;
+        $offer->comentaris = $validated['comentaris'] ?? null;
+        $offer->rao_rebuig = $validated['rao_rebuig'] ?? null;
+        $offer->data_creacio = $validated['data_creacio'];
+        $offer->data_validessa_inicial = $validated['data_validessa_inicial'] ?? null;
+        $offer->data_validessa_final = $validated['data_validessa_final'] ?? null;
+        $offer->preu = $validated['preu'] ?? null;
+        $offer->save();
         $offer->load(['client:id,nom_empresa', 'operador:id,nom,cognoms', 'estatOferta:id,estat', 'tipusTransport:id,tipus', 'tipusIncoterm:id,codi,nom']);
 
         return response()->json([
@@ -132,8 +187,14 @@ class OfertesController extends Controller
         ]);
     }
 
-    public function show(Request $request, Oferta $offer): JsonResponse
+    public function show(Request $request, $id): JsonResponse
     {
+        $offer = Oferta::find($id);
+
+        if (! $offer) {
+            return response()->json(['message' => 'Oferta no encontrada.'], 404);
+        }
+
         if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
                 'message' => 'No tienes permisos para ver esta oferta.',
@@ -145,8 +206,14 @@ class OfertesController extends Controller
         ]);
     }
 
-    public function actualizarEstado(Request $request, Oferta $offer): JsonResponse
+    public function actualizarEstado(Request $request, $id): JsonResponse
     {
+        $offer = Oferta::find($id);
+
+        if (! $offer) {
+            return response()->json(['message' => 'Oferta no encontrada.'], 404);
+        }
+
         if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
                 'message' => 'No tienes permisos para gestionar esta oferta.',
@@ -199,8 +266,14 @@ class OfertesController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, Oferta $offer): JsonResponse
+    public function destroy(Request $request, $id): JsonResponse
     {
+        $offer = Oferta::find($id);
+
+        if (! $offer) {
+            return response()->json(['message' => 'Oferta no encontrada.'], 404);
+        }
+
         if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
                 'message' => 'No tienes permisos para eliminar esta oferta.',

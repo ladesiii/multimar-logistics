@@ -44,14 +44,13 @@ class UsuarisController extends Controller
             'rol_id' => ['required', 'integer', 'in:1,2'],
         ]);
 
-        $user = Usuari::create([
-            'nom' => $validated['nom'],
-            'cognoms' => $validated['cognoms'],
-            'correu' => $validated['email'],
-            'contrasenya' => $validated['password'],
-            'rol_id' => $validated['rol_id'],
-
-        ]);
+        $user = new Usuari();
+        $user->nom = $validated['nom'];
+        $user->cognoms = $validated['cognoms'];
+        $user->correu = $validated['email'];
+        $user->contrasenya = $validated['password'];
+        $user->rol_id = $validated['rol_id'];
+        $user->save();
 
         return response()->json([
             'message' => 'Usuario creado correctamente.',
@@ -59,8 +58,14 @@ class UsuarisController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Usuari $user): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
+        $user = Usuari::find($id);
+
+        if (! $user) {
+            return response()->json(['message' => 'Usuario no encontrado.'], 404);
+        }
+
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:50'],
             'cognoms' => ['required', 'string', 'max:50'],
@@ -92,8 +97,14 @@ class UsuarisController extends Controller
         ]);
     }
 
-    public function destroy(Usuari $user): JsonResponse // Elimina un usuario existente, devolviendo un mensaje de confirmación.
+    public function destroy($id): JsonResponse // Elimina un usuario existente, devolviendo un mensaje de confirmación.
     {
+        $user = Usuari::find($id);
+
+        if (! $user) {
+            return response()->json(['message' => 'Usuario no encontrado.'], 404);
+        }
+
         $user->delete();
 
         return response()->json([

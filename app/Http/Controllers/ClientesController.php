@@ -54,21 +54,24 @@ class ClientesController extends Controller
         ]);
 
         $client = DB::transaction(function () use ($validated) {
-            // La creación del cliente necesita también su usuario asociado.
-            $usuari = Usuari::create([
-                'nom' => $validated['nom'],
-                'cognoms' => $validated['cognoms'],
-                'correu' => $validated['email'],
-                'contrasenya' => $validated['password'],
-                'rol_id' => 3,
-            ]);
+            // Crear usuario nuevo
+            $usuari = new Usuari();
+            $usuari->nom = $validated['nom'];
+            $usuari->cognoms = $validated['cognoms'];
+            $usuari->correu = $validated['email'];
+            $usuari->contrasenya = $validated['password'];
+            $usuari->rol_id = 3;
+            $usuari->save();
 
-            return Cliente::create([
-                'usuari_id' => $usuari->id,
-                'nom_empresa' => $validated['nom_empresa'],
-                'cif_nif' => $validated['cif_nif'],
-                'telefon' => $validated['telefon'] ?? null,
-            ]);
+            // Crear cliente nuevo
+            $client = new Cliente();
+            $client->usuari_id = $usuari->id;
+            $client->nom_empresa = $validated['nom_empresa'];
+            $client->cif_nif = $validated['cif_nif'];
+            $client->telefon = $validated['telefon'] ?? null;
+            $client->save();
+
+            return $client;
         });
 
         $client->load('usuari');
@@ -79,12 +82,18 @@ class ClientesController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Cliente $client): JsonResponse // Actualiza un cliente existente junto con su usuario
+    public function update(Request $request, $id): JsonResponse // Actualiza un cliente existente junto con su usuario
     {
+        $client = Cliente::find($id);
+
+        if (! $client) {
+            return response()->json(['message' => 'Cliente no encontrado.'], 404);
+        }
+
         $client->load('usuari');
 
         if (! $client->usuari) {
-            throw new ModelNotFoundException('No se encontró el usuario asociado al cliente.');
+            return response()->json(['message' => 'No se encontró el usuario asociado al cliente.'], 404);
         }
 
         $validated = $request->validate([
@@ -133,8 +142,14 @@ class ClientesController extends Controller
         ]);
     }
 
-    public function destroy(Cliente $client): JsonResponse // Elimina un cliente junto con su usuario asociado
+    public function destroy($id): JsonResponse // Elimina un cliente junto con su usuario asociado
     {
+        $client = Cliente::find($id);
+
+        if (! $client) {
+            return response()->json(['message' => 'Cliente no encontrado.'], 404);
+        }
+
         DB::transaction(function () use ($client) {
             $usuariId = $client->usuari_id;
             $client->delete();

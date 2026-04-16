@@ -181,32 +181,36 @@ const numeroColumnasTabla = computed(() => {
   return 7 + (mostrarColumnaCliente.value ? 1 : 0) + (mostrarColumnaOperador.value ? 1 : 0)
 })
 
-const cargarOfertas = async () => {
+const cargarOfertas = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  try {
-    const { data } = await window.axios.get('/api/offers')
-    ofertas.value = data.offers || []
-  } catch {
-    mensajeError.value = 'No se pudieron cargar las ofertas.'
-  } finally {
-    estaCargando.value = false
-  }
+  window.axios.get('/api/offers')
+    .then(({ data }) => {
+      ofertas.value = data.offers || []
+    })
+    .catch(() => {
+      mensajeError.value = 'No se pudieron cargar las ofertas.'
+    })
+    .finally(() => {
+      estaCargando.value = false
+    })
 }
 
-const cargarOpcionesFormulario = async () => {
+const cargarOpcionesFormulario = () => {
   estaCargandoOpcionesFormulario.value = true
   errorOpcionesFormulario.value = ''
 
-  try {
-    const { data } = await window.axios.get('/api/offers/form-options')
-    opcionesFormularioOferta.value = data || {}
-  } catch {
-    errorOpcionesFormulario.value = 'No se pudieron cargar los campos para crear la oferta.'
-  } finally {
-    estaCargandoOpcionesFormulario.value = false
-  }
+  window.axios.get('/api/offers/form-options')
+    .then(({ data }) => {
+      opcionesFormularioOferta.value = data || {}
+    })
+    .catch(() => {
+      errorOpcionesFormulario.value = 'No se pudieron cargar los campos para crear la oferta.'
+    })
+    .finally(() => {
+      estaCargandoOpcionesFormulario.value = false
+    })
 }
 
 const obtenerEtiquetaEstadoOferta = (oferta) => {
@@ -249,21 +253,23 @@ onMounted(() => {
   cargarOfertas()
 })
 
-const abrirModalVer = async (oferta) => {
+const abrirModalVer = (oferta) => {
   modalVerAbierto.value = true
   estaCargandoDetalle.value = true
   mensajeErrorDetalle.value = ''
   errorAccionEstado.value = ''
   ofertaSeleccionada.value = null
 
-  try {
-    const { data } = await window.axios.get(`/api/offers/${oferta.id}`)
-    ofertaSeleccionada.value = data.offer || null
-  } catch {
-    mensajeErrorDetalle.value = 'No se pudo cargar el detalle de la oferta.'
-  } finally {
-    estaCargandoDetalle.value = false
-  }
+  window.axios.get(`/api/offers/${oferta.id}`)
+    .then(({ data }) => {
+      ofertaSeleccionada.value = data.offer || null
+    })
+    .catch(() => {
+      mensajeErrorDetalle.value = 'No se pudo cargar el detalle de la oferta.'
+    })
+    .finally(() => {
+      estaCargandoDetalle.value = false
+    })
 }
 
 const cerrarModalVer = () => {
@@ -273,7 +279,7 @@ const cerrarModalVer = () => {
   errorAccionEstado.value = ''
 }
 
-const actualizarEstadoOferta = async (idEstado) => {
+const actualizarEstadoOferta = (idEstado) => {
   if (!ofertaSeleccionada.value?.id) {
     return
   }
@@ -281,17 +287,19 @@ const actualizarEstadoOferta = async (idEstado) => {
   actualizandoEstado.value = true
   errorAccionEstado.value = ''
 
-  try {
-    await window.axios.patch(`/api/offers/${ofertaSeleccionada.value.id}/status`, {
-      estat_oferta_id: idEstado,
+  window.axios.patch(`/api/offers/${ofertaSeleccionada.value.id}/status`, {
+    estat_oferta_id: idEstado,
+  })
+    .then(() => {
+      cerrarModalVer()
+      cargarOfertas()
     })
-    cerrarModalVer()
-    await cargarOfertas()
-  } catch (error) {
-    errorAccionEstado.value = error.response?.data?.message || 'No se pudo actualizar el estado de la oferta.'
-  } finally {
-    actualizandoEstado.value = false
-  }
+    .catch((error) => {
+      errorAccionEstado.value = error.response?.data?.message || 'No se pudo actualizar el estado de la oferta.'
+    })
+    .finally(() => {
+      actualizandoEstado.value = false
+    })
 }
 
 const abrirModalRechazo = () => {
@@ -304,7 +312,7 @@ const cerrarModalRechazo = () => {
   errorModalRechazo.value = ''
 }
 
-const enviarRechazoOferta = async ({ rao_rebuig }) => {
+const enviarRechazoOferta = ({ rao_rebuig }) => {
   if (!ofertaSeleccionada.value?.id) {
     return
   }
@@ -312,19 +320,21 @@ const enviarRechazoOferta = async ({ rao_rebuig }) => {
   actualizandoEstado.value = true
   errorModalRechazo.value = ''
 
-  try {
-    await window.axios.patch(`/api/offers/${ofertaSeleccionada.value.id}/status`, {
-      estat_oferta_id: 3,
-      rao_rebuig,
+  window.axios.patch(`/api/offers/${ofertaSeleccionada.value.id}/status`, {
+    estat_oferta_id: 3,
+    rao_rebuig,
+  })
+    .then(() => {
+      cerrarModalRechazo()
+      cerrarModalVer()
+      cargarOfertas()
     })
-    cerrarModalRechazo()
-    cerrarModalVer()
-    await cargarOfertas()
-  } catch (error) {
-    errorModalRechazo.value = error.response?.data?.message || 'No se pudo rechazar la oferta.'
-  } finally {
-    actualizandoEstado.value = false
-  }
+    .catch((error) => {
+      errorModalRechazo.value = error.response?.data?.message || 'No se pudo rechazar la oferta.'
+    })
+    .finally(() => {
+      actualizandoEstado.value = false
+    })
 }
 
 const abrirModalEliminar = (oferta) => {
@@ -338,7 +348,7 @@ const cerrarModalEliminar = () => {
   ofertaAEliminar.value = null
 }
 
-const abrirModalCrear = async () => {
+const abrirModalCrear = () => {
   errorEnvio.value = ''
   modalCrearAbierto.value = true
 
@@ -346,54 +356,55 @@ const abrirModalCrear = async () => {
     return
   }
 
-  await cargarOpcionesFormulario()
+  cargarOpcionesFormulario()
 }
 
 const cerrarModalCrear = () => {
   modalCrearAbierto.value = false
 }
 
-const crearOferta = async (datosFormulario) => {
+const crearOferta = (datosFormulario) => {
   errorEnvio.value = ''
 
-  try {
-    await window.axios.post('/api/offers', {
-      ...datosFormulario,
-      data_creacio: new Date().toISOString().slice(0, 10),
+  window.axios.post('/api/offers', {
+    ...datosFormulario,
+    data_creacio: new Date().toISOString().slice(0, 10),
+  })
+    .then(() => {
+      cerrarModalCrear()
+      cargarOfertas()
     })
+    .catch((error) => {
+      if (error.response?.status === 422) {
+        const mensajeApi = error.response?.data?.message
+        const erroresValidacion = error.response?.data?.errors
+        const primerErrorValidacion = erroresValidacion
+          ? Object.values(erroresValidacion)[0]?.[0]
+          : ''
 
-    cerrarModalCrear()
-    await cargarOfertas()
-  } catch (error) {
-    if (error.response?.status === 422) {
-      const mensajeApi = error.response?.data?.message
-      const erroresValidacion = error.response?.data?.errors
-      const primerErrorValidacion = erroresValidacion
-        ? Object.values(erroresValidacion)[0]?.[0]
-        : ''
+        errorEnvio.value = primerErrorValidacion || mensajeApi || 'Revisa los datos del formulario de oferta.'
+        return
+      }
 
-      errorEnvio.value = primerErrorValidacion || mensajeApi || 'Revisa los datos del formulario de oferta.'
-      return
-    }
-
-    errorEnvio.value = error.response?.data?.message || 'No se pudo crear la oferta.'
-  }
+      errorEnvio.value = error.response?.data?.message || 'No se pudo crear la oferta.'
+    })
 }
 
-const confirmarEliminarOferta = async () => {
+const confirmarEliminarOferta = () => {
   if (!ofertaAEliminar.value?.id) {
     return
   }
 
   errorEnvio.value = ''
 
-  try {
-    await window.axios.delete(`/api/offers/${ofertaAEliminar.value.id}`)
-    cerrarModalEliminar()
-    await cargarOfertas()
-  } catch {
-    errorEnvio.value = 'No se pudo eliminar la oferta.'
-  }
+  window.axios.delete(`/api/offers/${ofertaAEliminar.value.id}`)
+    .then(() => {
+      cerrarModalEliminar()
+      cargarOfertas()
+    })
+    .catch(() => {
+      errorEnvio.value = 'No se pudo eliminar la oferta.'
+    })
 }
 </script>
 

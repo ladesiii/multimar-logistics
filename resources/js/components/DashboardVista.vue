@@ -76,23 +76,25 @@ const contarOfertasPorEstado = (ofertas, idEstado) => {
   return ofertas.filter((oferta) => Number(oferta?.estat_oferta_id) === idEstado).length
 }
 
-const cargarEstadisticasDashboard = async () => {
+const cargarEstadisticasDashboard = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  try {
-    const { data } = await window.axios.get('/api/offers')
-    const ofertas = Array.isArray(data?.offers) ? data.offers : []
+  window.axios.get('/api/offers')
+    .then(({ data }) => {
+      const ofertas = Array.isArray(data?.offers) ? data.offers : []
 
-    estadisticas.total = ofertas.length
-    estadisticas.pending = contarOfertasPorEstado(ofertas, 1)
-    estadisticas.accepted = contarOfertasPorEstado(ofertas, 2)
-    estadisticas.rejected = contarOfertasPorEstado(ofertas, 3)
-  } catch {
-    mensajeError.value = 'No se pudo cargar el resumen de ofertas.'
-  } finally {
-    estaCargando.value = false
-  }
+      estadisticas.total = ofertas.length
+      estadisticas.pending = contarOfertasPorEstado(ofertas, 1)
+      estadisticas.accepted = contarOfertasPorEstado(ofertas, 2)
+      estadisticas.rejected = contarOfertasPorEstado(ofertas, 3)
+    })
+    .catch(() => {
+      mensajeError.value = 'No se pudo cargar el resumen de ofertas.'
+    })
+    .finally(() => {
+      estaCargando.value = false
+    })
 }
 
 onMounted(() => {

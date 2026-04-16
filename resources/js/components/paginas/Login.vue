@@ -55,33 +55,34 @@ const formulario = reactive({
 const estaCargando = ref(false)
 const mensajeError = ref('')
 
-const iniciarSesion = async () => {
+const iniciarSesion = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  try {
-    const { data } = await window.axios.post('/api/login', {
-      email: formulario.email,
-      password: formulario.password,
-    })
-
+  window.axios.post('/api/login', {
+    email: formulario.email,
+    password: formulario.password,
+  })
+    .then(({ data }) => {
       // Guardamos la sesión para reutilizarla en las siguientes peticiones.
-    localStorage.setItem('auth_token', data.token)
-    localStorage.setItem('auth_user', JSON.stringify(data.user))
-    window.axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
+      localStorage.setItem('auth_token', data.token)
+      localStorage.setItem('auth_user', JSON.stringify(data.user))
+      window.axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
 
-    window.location.href = '/dashboard'
-  } catch (error) {
-    if (error.response?.status === 401) {
-      mensajeError.value = 'Correo o contraseña incorrectos.'
-    } else if (error.response?.status === 422) {
-      mensajeError.value = 'Revisa el formato del correo y la contraseña.'
-    } else {
-      mensajeError.value = 'No se pudo iniciar sesión. Inténtalo de nuevo.'
-    }
-  } finally {
-    estaCargando.value = false
-  }
+      window.location.href = '/dashboard'
+    })
+    .catch((error) => {
+      if (error.response?.status === 401) {
+        mensajeError.value = 'Correo o contraseña incorrectos.'
+      } else if (error.response?.status === 422) {
+        mensajeError.value = 'Revisa el formato del correo y la contraseña.'
+      } else {
+        mensajeError.value = 'No se pudo iniciar sesión. Inténtalo de nuevo.'
+      }
+    })
+    .finally(() => {
+      estaCargando.value = false
+    })
 }
 </script>
 

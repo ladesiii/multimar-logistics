@@ -62,18 +62,20 @@ const ofertasTracking = ref([])
 const estaCargando = ref(true)
 const mensajeError = ref('')
 
-const cargarTracking = async () => {
+const cargarTracking = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  try {
-    const { data } = await window.axios.get('/api/tracking')
-    ofertasTracking.value = Array.isArray(data?.tracking) ? data.tracking : []
-  } catch {
-    mensajeError.value = 'No se pudo cargar el tracking.'
-  } finally {
-    estaCargando.value = false
-  }
+  window.axios.get('/api/tracking')
+    .then(({ data }) => {
+      ofertasTracking.value = Array.isArray(data?.tracking) ? data.tracking : []
+    })
+    .catch(() => {
+      mensajeError.value = 'No se pudo cargar el tracking.'
+    })
+    .finally(() => {
+      estaCargando.value = false
+    })
 }
 
 onMounted(() => {

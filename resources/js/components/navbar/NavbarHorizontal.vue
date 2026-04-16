@@ -86,21 +86,27 @@ const gestionarTeclado = (event) => {
   }
 }
 
-const cerrarSesion = async () => {
+const cerrarSesion = () => {
   const tokenSesion = localStorage.getItem('auth_token')
 
-  try {
-    if (tokenSesion) {
-      await window.axios.post('/api/logout')
-    }
-  } catch {
-    // Aunque falle el backend, cerramos la sesión local para no dejar el token activo.
-  } finally {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('auth_user')
-    delete window.axios.defaults.headers.common.Authorization
-    window.location.href = '/'
+  if (tokenSesion) {
+    window.axios.post('/api/logout')
+      .catch(() => {
+        // Aunque falle el backend, cerramos la sesión local para no dejar el token activo.
+      })
+      .finally(() => {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('auth_user')
+        delete window.axios.defaults.headers.common.Authorization
+        window.location.href = '/'
+      })
+    return
   }
+
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('auth_user')
+  delete window.axios.defaults.headers.common.Authorization
+  window.location.href = '/'
 }
 
 const irAPerfil = () => {
