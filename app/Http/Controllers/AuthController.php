@@ -11,6 +11,27 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
+    // Convierte el modelo Usuari al formato de datos que devolvemos en login y perfil.
+    private function formatearUsuario(Usuari $usuario): array
+    {
+        return [
+            'id' => $usuario->id,
+            'email' => $usuario->correu,
+            'name' => trim($usuario->nom . ' ' . $usuario->cognoms),
+            'nom' => $usuario->nom,
+            'cognoms' => $usuario->cognoms,
+            'rol_id' => $usuario->rol_id,
+            'rol' => $usuario->rol?->rol,
+        ];
+    }
+
+    private function respuestaCredencialesInvalidas(): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Las credenciales no son válidas.',
+        ], 401);
+    }
+
     public function login(Request $request): JsonResponse
     {
         $credenciales = $request->validate([
@@ -22,37 +43,21 @@ class AuthController extends Controller
             ->where('correu', $credenciales['email'])
             ->first();
 
-        if (! $usuario) {
-            return response()->json([
-                'message' => 'Las credenciales no son válidas.',
-            ], 401);
+        if (! $usuario || ! Hash::check($credenciales['password'], $usuario->contrasenya)) {
+            return $this->respuestaCredencialesInvalidas();
         }
 
-        if (! Hash::check($credenciales['password'], $usuario->contrasenya)) {
-            return response()->json([
-                'message' => 'Las credenciales no son válidas.',
-            ], 401);
-        }
-
-        $token = $usuario->createToken('multimar-api')->plainTextToken;
+        $token = $usuario->createToken('multimar-api')->plainTextToken; // Crea un token de acceso para el usuario autenticado.
 
         return response()->json([
             'message' => 'Login correcto.',
             'token_type' => 'Bearer',
             'token' => $token,
-            'user' => [
-                'id' => $usuario->id,
-                'email' => $usuario->correu,
-                'name' => trim($usuario->nom . ' ' . $usuario->cognoms),
-                'nom' => $usuario->nom,
-                'cognoms' => $usuario->cognoms,
-                'rol_id' => $usuario->rol_id,
-                'rol' => $usuario->rol?->rol,
-            ],
+            'user' => $this->formatearUsuario($usuario),
         ]);
     }
 
-    public function usuarioAutenticado(Request $request): JsonResponse
+    public function usuarioAutenticado(Request $request): JsonResponse // Devuelve los datos del usuario autenticado (usado para mostrar el perfil).
     {
         $user = $request->user();
 
@@ -65,7 +70,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function cerrarSesion(Request $request): JsonResponse
+    public function cerrarSesion(Request $request): JsonResponse // Cierra la sesión del usuario autenticado.
     {
         $user = $request->user();
         $token = $user?->currentAccessToken();
@@ -79,7 +84,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function actualizarPerfil(Request $request): JsonResponse
+    public function actualizarPerfil(Request $request): JsonResponse // Permite al usuario autenticado actualizar su perfil (nombre, apellidos, email y/o contraseña).
     {
         $user = $request->user();
 
@@ -130,19 +135,11 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Perfil actualizado correctamente.',
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->correu,
-                'name' => trim($user->nom . ' ' . $user->cognoms),
-                'nom' => $user->nom,
-                'cognoms' => $user->cognoms,
-                'rol_id' => $user->rol_id,
-                'rol' => $user->rol?->rol,
-            ],
+            'user' => $this->formatearUsuario($user),
         ]);
     }
 
-    public function verificarContrasenaPerfil(Request $request): JsonResponse
+    public function verificarContrasenaPerfil(Request $request): JsonResponse // Endpoint para verificar la contraseña actual del perfil (usado antes de permitir cambiar la contraseña).
     {
         $user = $request->user();
 

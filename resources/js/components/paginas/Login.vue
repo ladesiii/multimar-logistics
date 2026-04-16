@@ -6,12 +6,12 @@
       <div class="login-card">
         <img :src="logo" alt="Logo" class="logo">
 
-        <form class="login-form" @submit.prevent="handleLogin">
+        <form class="login-form" @submit.prevent="iniciarSesion">
           <div class="input-group">
             <label for="email">Correo electrónico</label>
             <input
               id="email"
-              v-model="form.email"
+              v-model="formulario.email"
               type="email"
               autocomplete="username"
               required
@@ -22,17 +22,17 @@
             <label for="password">Contraseña</label>
             <input
               id="password"
-              v-model="form.password"
+              v-model="formulario.password"
               type="password"
               autocomplete="current-password"
               required
             >
           </div>
 
-          <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
+          <p v-if="mensajeError" class="form-error">{{ mensajeError }}</p>
 
-          <button type="submit" class="btn-submit" :disabled="isLoading">
-            {{ isLoading ? 'Entrando...' : 'Iniciar sesión' }}
+          <button type="submit" class="btn-submit" :disabled="estaCargando">
+            {{ estaCargando ? 'Entrando...' : 'Iniciar sesión' }}
           </button>
 
           <a href="#" class="forgot-link">Forgot password?</a>
@@ -47,24 +47,25 @@ import { reactive, ref } from 'vue'
 import NavbarLogin from '../navbar/NavbarLogin.vue'
 import logo from '../../../assets/multimar-logistics.png'
 
-const form = reactive({
+const formulario = reactive({
   email: '',
   password: '',
 })
 
-const isLoading = ref(false)
-const errorMessage = ref('')
+const estaCargando = ref(false)
+const mensajeError = ref('')
 
-const handleLogin = async () => {
-  isLoading.value = true
-  errorMessage.value = ''
+const iniciarSesion = async () => {
+  estaCargando.value = true
+  mensajeError.value = ''
 
   try {
     const { data } = await window.axios.post('/api/login', {
-      email: form.email,
-      password: form.password,
+      email: formulario.email,
+      password: formulario.password,
     })
 
+      // Guardamos la sesión para reutilizarla en las siguientes peticiones.
     localStorage.setItem('auth_token', data.token)
     localStorage.setItem('auth_user', JSON.stringify(data.user))
     window.axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
@@ -72,14 +73,14 @@ const handleLogin = async () => {
     window.location.href = '/dashboard'
   } catch (error) {
     if (error.response?.status === 401) {
-      errorMessage.value = 'Correo o contraseña incorrectos.'
+      mensajeError.value = 'Correo o contraseña incorrectos.'
     } else if (error.response?.status === 422) {
-      errorMessage.value = 'Revisa el formato del correo y la contraseña.'
+      mensajeError.value = 'Revisa el formato del correo y la contraseña.'
     } else {
-      errorMessage.value = 'No se pudo iniciar sesión. Inténtalo de nuevo.'
+      mensajeError.value = 'No se pudo iniciar sesión. Inténtalo de nuevo.'
     }
   } finally {
-    isLoading.value = false
+    estaCargando.value = false
   }
 }
 </script>

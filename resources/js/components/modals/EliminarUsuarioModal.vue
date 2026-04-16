@@ -19,6 +19,7 @@
 </template>
 
 <script setup>
+// El componente solo necesita el usuario para mostrar el texto de confirmación.
 defineProps({
   user: {
     type: Object,

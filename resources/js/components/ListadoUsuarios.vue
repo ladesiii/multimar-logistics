@@ -2,7 +2,7 @@
   <section class="table-panel">
     <header class="table-header">
       <h1>Usuarios</h1>
-      <button type="button" class="add-entity-btn" @click="isModalOpen = true">
+      <button type="button" class="add-entity-btn" @click="modalNuevoAbierto = true">
         Añadir usuario
       </button>
     </header>
@@ -18,27 +18,27 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-if="isLoading">
+        <tr v-if="estaCargando">
           <td colspan="5">Cargando usuarios...</td>
         </tr>
-        <tr v-else-if="errorMessage">
-          <td colspan="5">{{ errorMessage }}</td>
+        <tr v-else-if="mensajeError">
+          <td colspan="5">{{ mensajeError }}</td>
         </tr>
-        <tr v-else-if="users.length === 0">
+        <tr v-else-if="usuarios.length === 0">
           <td colspan="5">No hay usuarios para mostrar.</td>
         </tr>
-        <tr v-else v-for="user in users" :key="user.id">
-          <td>{{ user.id }}</td>
-          <td>{{ user.nom_complet }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.rol }}</td>
+        <tr v-else v-for="usuario in usuarios" :key="usuario.id">
+          <td>{{ usuario.id }}</td>
+          <td>{{ usuario.nom_complet }}</td>
+          <td>{{ usuario.email }}</td>
+          <td>{{ usuario.rol }}</td>
           <td class="actions-cell">
-            <button type="button" class="icon-btn edit-btn" aria-label="Editar usuario" @click="openEditModal(user)">
+            <button type="button" class="icon-btn edit-btn" aria-label="Editar usuario" @click="abrirModalEditar(usuario)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 3.487a2.1 2.1 0 1 1 2.97 2.97L9.23 17.06 5 18l.939-4.23 10.923-10.283Z" />
               </svg>
             </button>
-            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar usuario" @click="openDeleteModal(user)">
+            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar usuario" @click="abrirModalEliminar(usuario)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 .92h6a1 1 0 0 0 1-.92L17 7" />
               </svg>
@@ -49,26 +49,26 @@
     </table>
 
     <NuevoUsuarioModal
-      v-if="isModalOpen"
-      @close="isModalOpen = false"
-      @submit="handleCreateUser"
+      v-if="modalNuevoAbierto"
+      @close="modalNuevoAbierto = false"
+      @submit="crearUsuario"
     />
 
     <EditarUsuarioModal
-      v-if="isEditModalOpen && selectedUser"
-      :user="selectedUser"
-      @close="isEditModalOpen = false"
-      @submit="handleEditUser"
+      v-if="modalEditarAbierto && usuarioSeleccionado"
+      :user="usuarioSeleccionado"
+      @close="modalEditarAbierto = false"
+      @submit="editarUsuario"
     />
 
     <EliminarUsuarioModal
-      v-if="isDeleteModalOpen && userToDelete"
-      :user="userToDelete"
-      @close="closeDeleteModal"
-      @confirm="confirmDeleteUser"
+      v-if="modalEliminarAbierto && usuarioAEliminar"
+      :user="usuarioAEliminar"
+      @close="cerrarModalEliminar"
+      @confirm="confirmarEliminarUsuario"
     />
 
-    <p v-if="submitError" class="submit-error">{{ submitError }}</p>
+    <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
 </template>
 
@@ -78,121 +78,117 @@ import NuevoUsuarioModal from './modals/NuevoUsuarioModal.vue'
 import EditarUsuarioModal from './modals/EditarUsuarioModal.vue'
 import EliminarUsuarioModal from './modals/EliminarUsuarioModal.vue'
 
-const users = ref([])
-const isLoading = ref(true)
-const errorMessage = ref('')
-const isModalOpen = ref(false)
-const isEditModalOpen = ref(false)
-const isDeleteModalOpen = ref(false)
-const selectedUser = ref(null)
-const userToDelete = ref(null)
-const submitError = ref('')
+const usuarios = ref([])
+const estaCargando = ref(true)
+const mensajeError = ref('')
+const modalNuevoAbierto = ref(false)
+const modalEditarAbierto = ref(false)
+const modalEliminarAbierto = ref(false)
+const usuarioSeleccionado = ref(null)
+const usuarioAEliminar = ref(null)
+const errorEnvio = ref('')
 
-const loadUsers = async () => {
-  isLoading.value = true
-  errorMessage.value = ''
+const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
+  const mensajeApi = error.response?.data?.message
+  const erroresValidacion = error.response?.data?.errors
+  const primerErrorValidacion = erroresValidacion ? Object.values(erroresValidacion)[0]?.[0] : ''
+
+  return primerErrorValidacion || mensajeApi || mensajePorDefecto
+}
+
+const cargarUsuarios = async () => {
+  estaCargando.value = true
+  mensajeError.value = ''
 
   try {
     const { data } = await window.axios.get('/api/users')
-    users.value = data.users || []
+    usuarios.value = data.users || []
   } catch {
-    errorMessage.value = 'No se pudieron cargar los usuarios.'
+    mensajeError.value = 'No se pudieron cargar los usuarios.'
   } finally {
-    isLoading.value = false
+    estaCargando.value = false
   }
 }
 
 onMounted(() => {
-  loadUsers()
+  cargarUsuarios()
 })
 
-const handleCreateUser = async (userData) => {
-  submitError.value = ''
+const crearUsuario = async (datosUsuario) => {
+  errorEnvio.value = ''
 
   try {
-    await window.axios.post('/api/users', userData)
-    isModalOpen.value = false
-    await loadUsers()
+    await window.axios.post('/api/users', datosUsuario)
+    modalNuevoAbierto.value = false
+    await cargarUsuarios()
   } catch (error) {
     if (error.response?.status === 422) {
-      const apiMessage = error.response?.data?.message
-      const validationErrors = error.response?.data?.errors
-      const firstValidationError = validationErrors
-        ? Object.values(validationErrors)[0]?.[0]
-        : ''
-
-      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario.'
+      errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
       return
     }
 
-    submitError.value = 'No se pudo crear el usuario.'
+    errorEnvio.value = 'No se pudo crear el usuario.'
   }
 }
 
-const openEditModal = (user) => {
-  submitError.value = ''
-  selectedUser.value = {
-    id: user.id,
-    nom: user.nom || '',
-    cognoms: user.cognoms || '',
-    email: user.email || '',
-    rol_id: user.rol_id || 2,
+const abrirModalEditar = (usuario) => {
+  errorEnvio.value = ''
+  usuarioSeleccionado.value = {
+    id: usuario.id,
+    nom: usuario.nom || '',
+    cognoms: usuario.cognoms || '',
+    email: usuario.email || '',
+    rol_id: usuario.rol_id || 2,
   }
-  isEditModalOpen.value = true
+  modalEditarAbierto.value = true
 }
 
-const handleEditUser = async (userData) => {
-  if (!selectedUser.value?.id) {
+const editarUsuario = async (datosUsuario) => {
+  if (!usuarioSeleccionado.value?.id) {
     return
   }
 
-  submitError.value = ''
+  errorEnvio.value = ''
 
   try {
-    await window.axios.put(`/api/users/${selectedUser.value.id}`, userData)
-    isEditModalOpen.value = false
-    selectedUser.value = null
-    await loadUsers()
+    await window.axios.put(`/api/users/${usuarioSeleccionado.value.id}`, datosUsuario)
+    modalEditarAbierto.value = false
+    usuarioSeleccionado.value = null
+    await cargarUsuarios()
   } catch (error) {
     if (error.response?.status === 422) {
-      const apiMessage = error.response?.data?.message
-      const validationErrors = error.response?.data?.errors
-      const firstValidationError = validationErrors
-        ? Object.values(validationErrors)[0]?.[0]
-        : ''
-
-      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario.'
+      errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
       return
     }
 
-    submitError.value = 'No se pudo actualizar el usuario.'
+    errorEnvio.value = 'No se pudo actualizar el usuario.'
   }
 }
 
-const openDeleteModal = (user) => {
-  submitError.value = ''
-  userToDelete.value = user
-  isDeleteModalOpen.value = true
+const abrirModalEliminar = (usuario) => {
+  errorEnvio.value = ''
+  usuarioAEliminar.value = usuario
+  modalEliminarAbierto.value = true
 }
 
-const closeDeleteModal = () => {
-  isDeleteModalOpen.value = false
-  userToDelete.value = null
+const cerrarModalEliminar = () => {
+  modalEliminarAbierto.value = false
+  usuarioAEliminar.value = null
 }
 
-const confirmDeleteUser = async () => {
-  if (!userToDelete.value?.id) {
+const confirmarEliminarUsuario = async () => {
+  if (!usuarioAEliminar.value?.id) {
     return
   }
 
-  submitError.value = ''
+  errorEnvio.value = ''
 
   try {
-    await window.axios.delete(`/api/users/${userToDelete.value.id}`)
-    closeDeleteModal()
-    await loadUsers()
+    await window.axios.delete(`/api/users/${usuarioAEliminar.value.id}`)
+    cerrarModalEliminar()
+    await cargarUsuarios()
   } catch {
-    submitError.value = 'No se pudo eliminar el usuario.'
+    errorEnvio.value = 'No se pudo eliminar el usuario.'
   }
 }
 </script>

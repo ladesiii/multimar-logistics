@@ -19,6 +19,7 @@ class TipusTransport extends Model
         'tipus',
     ];
 
+    // Un tipo de transporte puede reutilizarse en muchas ofertas.
     public function ofertes(): HasMany
     {
         return $this->hasMany(Oferta::class, 'tipus_transport_id');

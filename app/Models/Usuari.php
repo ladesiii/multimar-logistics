@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use App\Models\Rol;
 use Laravel\Sanctum\HasApiTokens;
 
 class Usuari extends Authenticatable
@@ -32,17 +32,19 @@ class Usuari extends Authenticatable
 
     protected function casts(): array
     {
+        // La contraseña se guarda hasheada automáticamente al asignarla.
         return [
             'contrasenya' => 'hashed',
         ];
     }
 
+    // Laravel usa este campo para autenticar al usuario.
     public function getAuthPassword(): string
     {
         return $this->contrasenya;
     }
 
-    public function rol()
+    public function rol(): BelongsTo
     {
         return $this->belongsTo(Rol::class, 'rol_id');
     }

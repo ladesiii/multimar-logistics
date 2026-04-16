@@ -22,11 +22,13 @@ class Cliente extends Model
         'telefon',
     ];
 
+    // Cada cliente pertenece a un usuario con sus datos personales.
     public function usuari(): BelongsTo
     {
         return $this->belongsTo(Usuari::class, 'usuari_id');
     }
 
+    // Un cliente puede tener varias ofertas asociadas.
     public function ofertes(): HasMany
     {
         return $this->hasMany(Oferta::class, 'client_id');

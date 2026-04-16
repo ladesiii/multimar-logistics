@@ -17,31 +17,31 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-if="isLoading">
+        <tr v-if="estaCargando">
           <td colspan="7">Cargando tracking...</td>
         </tr>
-        <tr v-else-if="errorMessage">
-          <td colspan="7">{{ errorMessage }}</td>
+        <tr v-else-if="mensajeError">
+          <td colspan="7">{{ mensajeError }}</td>
         </tr>
-        <tr v-else-if="trackingOffers.length === 0">
+        <tr v-else-if="ofertasTracking.length === 0">
           <td colspan="7">No hay ofertas en tracking.</td>
         </tr>
-        <tr v-else v-for="offer in trackingOffers" :key="offer.id">
-          <td>{{ offer.id }}</td>
-          <td>{{ offer.ruta || '-' }}</td>
-          <td>{{ offer.medio || '-' }}</td>
-          <td>{{ offer.incoterm || '-' }}</td>
+        <tr v-else v-for="oferta in ofertasTracking" :key="oferta.id">
+          <td>{{ oferta.id }}</td>
+          <td>{{ oferta.ruta || '-' }}</td>
+          <td>{{ oferta.medio || '-' }}</td>
+          <td>{{ oferta.incoterm || '-' }}</td>
           <td>
-            <span class="tracking-badge">{{ offer.estado || 'En tracking' }}</span>
+            <span class="tracking-badge">{{ oferta.estado || 'En tracking' }}</span>
           </td>
-          <td>{{ offer.fecha_creacion || '-' }}</td>
+          <td>{{ oferta.fecha_creacion || '-' }}</td>
           <td class="actions-cell">
             <button
               type="button"
               class="icon-btn view-btn"
               aria-label="Ver tracking"
               title="Ver tracking"
-              @click="openTrackingDetail(offer)"
+              @click="abrirDetalleTracking(oferta)"
             >
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12Z" />
@@ -58,31 +58,31 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 
-const trackingOffers = ref([])
-const isLoading = ref(true)
-const errorMessage = ref('')
+const ofertasTracking = ref([])
+const estaCargando = ref(true)
+const mensajeError = ref('')
 
-const loadTracking = async () => {
-  isLoading.value = true
-  errorMessage.value = ''
+const cargarTracking = async () => {
+  estaCargando.value = true
+  mensajeError.value = ''
 
   try {
     const { data } = await window.axios.get('/api/tracking')
-    trackingOffers.value = Array.isArray(data?.tracking) ? data.tracking : []
+    ofertasTracking.value = Array.isArray(data?.tracking) ? data.tracking : []
   } catch {
-    errorMessage.value = 'No se pudo cargar el tracking.'
+    mensajeError.value = 'No se pudo cargar el tracking.'
   } finally {
-    isLoading.value = false
+    estaCargando.value = false
   }
 }
 
 onMounted(() => {
-  loadTracking()
+  cargarTracking()
 })
 
-const openTrackingDetail = (offer) => {
-  // Placeholder for future navigation handled by another teammate.
-  console.info('Abrir detalle tracking', offer?.id)
+const abrirDetalleTracking = (oferta) => {
+  // Todavia no existe una vista de detalle, asi que solo dejamos trazado el clic.
+  console.info('Abrir detalle tracking', oferta?.id)
 }
 </script>
 

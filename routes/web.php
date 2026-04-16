@@ -2,14 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('login');
-});
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-});
-
-Route::get('/editar-perfil', function () {
-    return view('editar-perfil');
-});
+Route::view('/', 'login')->name('login');
+Route::view('/dashboard', 'dashboard')->name('dashboard');
+Route::view('/editar-perfil', 'editar-perfil')->name('profile.edit');

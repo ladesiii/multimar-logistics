@@ -3,10 +3,10 @@
     <header class="table-header">
       <h1>Ofertas</h1>
       <button
-        v-if="canCreateOffers"
+        v-if="puedeCrearOfertas"
         type="button"
         class="add-entity-btn"
-        @click="openCreateModal"
+        @click="abrirModalCrear"
       >
         Crear oferta
       </button>
@@ -16,8 +16,8 @@
       <thead>
         <tr>
           <th>ID de oferta</th>
-          <th v-if="showClientColumn">Cliente</th>
-          <th v-if="showOperatorColumn">Operador</th>
+          <th v-if="mostrarColumnaCliente">Cliente</th>
+          <th v-if="mostrarColumnaOperador">Operador</th>
           <th>Estado de la oferta</th>
           <th>Tipo de transporte</th>
           <th>Incoterm</th>
@@ -27,41 +27,41 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-if="isLoading">
-          <td :colspan="tableColumnsCount">Cargando ofertas...</td>
+        <tr v-if="estaCargando">
+          <td :colspan="numeroColumnasTabla">Cargando ofertas...</td>
         </tr>
-        <tr v-else-if="errorMessage">
-          <td :colspan="tableColumnsCount">{{ errorMessage }}</td>
+        <tr v-else-if="mensajeError">
+          <td :colspan="numeroColumnasTabla">{{ mensajeError }}</td>
         </tr>
-        <tr v-else-if="offers.length === 0">
-          <td :colspan="tableColumnsCount">No hay ofertas para mostrar.</td>
+        <tr v-else-if="ofertas.length === 0">
+          <td :colspan="numeroColumnasTabla">No hay ofertas para mostrar.</td>
         </tr>
-        <tr v-else v-for="offer in offers" :key="offer.id">
-          <td>{{ offer.id }}</td>
-          <td v-if="showClientColumn">{{ offer.client || '-' }}</td>
-          <td v-if="showOperatorColumn">{{ offer.operador || '-' }}</td>
+        <tr v-else v-for="oferta in ofertas" :key="oferta.id">
+          <td>{{ oferta.id }}</td>
+          <td v-if="mostrarColumnaCliente">{{ oferta.client || '-' }}</td>
+          <td v-if="mostrarColumnaOperador">{{ oferta.operador || '-' }}</td>
           <td>
-            <span class="status-badge" :class="getOfferStatusClass(offer)">
-              {{ getOfferStatusLabel(offer) }}
+            <span class="status-badge" :class="obtenerClaseEstadoOferta(oferta)">
+              {{ obtenerEtiquetaEstadoOferta(oferta) }}
             </span>
           </td>
-          <td>{{ offer.tipus_transport || '-' }}</td>
-          <td>{{ offer.tipus_incoterm || '-' }}</td>
-          <td>{{ offer.data_creacio || '-' }}</td>
-          <td>{{ offer.preu ?? '-' }}</td>
+          <td>{{ oferta.tipus_transport || '-' }}</td>
+          <td>{{ oferta.tipus_incoterm || '-' }}</td>
+          <td>{{ oferta.data_creacio || '-' }}</td>
+          <td>{{ oferta.preu ?? '-' }}</td>
           <td class="actions-cell">
-            <button type="button" class="icon-btn view-btn" aria-label="Ver oferta" @click="openViewModal(offer)">
+            <button type="button" class="icon-btn view-btn" aria-label="Ver oferta" @click="abrirModalVer(oferta)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12Z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
             <button
-              v-if="canDeleteOffers"
+              v-if="puedeEliminarOfertas"
               type="button"
               class="icon-btn delete-btn"
               aria-label="Eliminar oferta"
-              @click="openDeleteModal(offer)"
+              @click="abrirModalEliminar(oferta)"
             >
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 .92h6a1 1 0 0 0 1-.92L17 7" />
@@ -73,45 +73,45 @@
     </table>
 
     <OfertaDetalleModal
-      :is-open="isViewModalOpen"
-      :offer="selectedOffer"
-      :is-loading="isViewLoading"
-      :error-message="viewErrorMessage"
-      :is-status-updating="isStatusUpdating"
-      :status-action-error="statusActionError"
-      :can-manage-status="canManageOfferStatus"
-      :current-role="currentRole"
-      @close="closeViewModal"
-      @accept="updateOfferStatus(2)"
-      @reject="openRejectModal"
+      :is-open="modalVerAbierto"
+      :offer="ofertaSeleccionada"
+      :is-loading="estaCargandoDetalle"
+      :error-message="mensajeErrorDetalle"
+      :is-status-updating="actualizandoEstado"
+      :status-action-error="errorAccionEstado"
+      :can-manage-status="puedeGestionarEstadoOferta"
+      :current-role="rolActual"
+      @close="cerrarModalVer"
+      @accept="actualizarEstadoOferta(2)"
+      @reject="abrirModalRechazo"
     />
 
     <EliminarOfertaModal
-      v-if="isDeleteModalOpen && offerToDelete"
-      :offer="offerToDelete"
-      @close="closeDeleteModal"
-      @confirm="confirmDeleteOffer"
+      v-if="modalEliminarAbierto && ofertaAEliminar"
+      :offer="ofertaAEliminar"
+      @close="cerrarModalEliminar"
+      @confirm="confirmarEliminarOferta"
     />
 
     <RechazarOfertaModal
-      v-if="isRejectModalOpen && selectedOffer"
-      :offer="selectedOffer"
-      :is-submitting="isStatusUpdating"
-      :error-message="rejectModalError"
-      @close="closeRejectModal"
-      @submit="submitRejectOffer"
+      v-if="modalRechazoAbierto && ofertaSeleccionada"
+      :offer="ofertaSeleccionada"
+      :is-submitting="actualizandoEstado"
+      :error-message="errorModalRechazo"
+      @close="cerrarModalRechazo"
+      @submit="enviarRechazoOferta"
     />
 
     <NuevaOfertaModal
-      v-if="isCreateModalOpen"
-      :options="offerFormOptions"
-      :is-loading="isFormOptionsLoading"
-      :error-message="formOptionsError"
-      @close="closeCreateModal"
-      @submit="handleCreateOffer"
+      v-if="modalCrearAbierto"
+      :options="opcionesFormularioOferta"
+      :is-loading="estaCargandoOpcionesFormulario"
+      :error-message="errorOpcionesFormulario"
+      @close="cerrarModalCrear"
+      @submit="crearOferta"
     />
 
-    <p v-if="submitError" class="submit-error">{{ submitError }}</p>
+    <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
 </template>
 
@@ -122,46 +122,47 @@ import EliminarOfertaModal from './modals/EliminarOfertaModal.vue'
 import RechazarOfertaModal from './modals/RechazarOfertaModal.vue'
 import NuevaOfertaModal from './modals/NuevaOfertaModal.vue'
 
-const offers = ref([])
-const isLoading = ref(true)
-const errorMessage = ref('')
-const submitError = ref('')
-const isViewModalOpen = ref(false)
-const isDeleteModalOpen = ref(false)
-const isRejectModalOpen = ref(false)
-const selectedOffer = ref(null)
-const offerToDelete = ref(null)
-const isViewLoading = ref(false)
-const viewErrorMessage = ref('')
-const isStatusUpdating = ref(false)
-const statusActionError = ref('')
-const rejectModalError = ref('')
-const isCreateModalOpen = ref(false)
-const isFormOptionsLoading = ref(false)
-const formOptionsError = ref('')
-const offerFormOptions = ref({})
+const ofertas = ref([])
+const estaCargando = ref(true)
+const mensajeError = ref('')
+const errorEnvio = ref('')
+const modalVerAbierto = ref(false)
+const modalEliminarAbierto = ref(false)
+const modalRechazoAbierto = ref(false)
+const ofertaSeleccionada = ref(null)
+const ofertaAEliminar = ref(null)
+const estaCargandoDetalle = ref(false)
+const mensajeErrorDetalle = ref('')
+const actualizandoEstado = ref(false)
+const errorAccionEstado = ref('')
+const errorModalRechazo = ref('')
+const modalCrearAbierto = ref(false)
+const estaCargandoOpcionesFormulario = ref(false)
+const errorOpcionesFormulario = ref('')
+const opcionesFormularioOferta = ref({})
 
-const currentRole = computed(() => {
-  const rawUser = localStorage.getItem('auth_user')
+const rolActual = computed(() => {
+  // El rol se resuelve tanto por id como por nombre para ser tolerante con datos antiguos.
+  const usuarioEnTexto = localStorage.getItem('auth_user')
 
-  if (!rawUser) {
+  if (!usuarioEnTexto) {
     return ''
   }
 
   try {
-    const user = JSON.parse(rawUser)
-    const roleName = String(user?.rol || '').toLowerCase()
-    const roleId = Number(user?.rol_id || 0)
+    const usuario = JSON.parse(usuarioEnTexto)
+    const nombreRol = String(usuario?.rol || '').toLowerCase()
+    const idRol = Number(usuario?.rol_id || 0)
 
-    if (roleId === 1 || roleName.includes('admin')) {
+    if (idRol === 1 || nombreRol.includes('admin')) {
       return 'admin'
     }
 
-    if (roleId === 2 || roleName.includes('operador') || roleName.includes('operator')) {
+    if (idRol === 2 || nombreRol.includes('operador') || nombreRol.includes('operator')) {
       return 'operador'
     }
 
-    if (roleId === 3 || roleName.includes('client')) {
+    if (idRol === 3 || nombreRol.includes('client')) {
       return 'cliente'
     }
   } catch {
@@ -171,73 +172,73 @@ const currentRole = computed(() => {
   return ''
 })
 
-const canDeleteOffers = computed(() => ['admin', 'operador'].includes(currentRole.value))
-const canManageOfferStatus = computed(() => ['admin', 'cliente'].includes(currentRole.value))
-const canCreateOffers = computed(() => currentRole.value === 'operador')
-const showClientColumn = computed(() => currentRole.value !== 'cliente')
-const showOperatorColumn = computed(() => currentRole.value !== 'operador')
-const tableColumnsCount = computed(() => {
-  return 7 + (showClientColumn.value ? 1 : 0) + (showOperatorColumn.value ? 1 : 0)
+const puedeEliminarOfertas = computed(() => ['admin', 'operador'].includes(rolActual.value))
+const puedeGestionarEstadoOferta = computed(() => ['admin', 'cliente'].includes(rolActual.value))
+const puedeCrearOfertas = computed(() => rolActual.value === 'operador')
+const mostrarColumnaCliente = computed(() => rolActual.value !== 'cliente')
+const mostrarColumnaOperador = computed(() => rolActual.value !== 'operador')
+const numeroColumnasTabla = computed(() => {
+  return 7 + (mostrarColumnaCliente.value ? 1 : 0) + (mostrarColumnaOperador.value ? 1 : 0)
 })
 
-const loadOffers = async () => {
-  isLoading.value = true
-  errorMessage.value = ''
+const cargarOfertas = async () => {
+  estaCargando.value = true
+  mensajeError.value = ''
 
   try {
     const { data } = await window.axios.get('/api/offers')
-    offers.value = data.offers || []
+    ofertas.value = data.offers || []
   } catch {
-    errorMessage.value = 'No se pudieron cargar las ofertas.'
+    mensajeError.value = 'No se pudieron cargar las ofertas.'
   } finally {
-    isLoading.value = false
+    estaCargando.value = false
   }
 }
 
-const loadFormOptions = async () => {
-  isFormOptionsLoading.value = true
-  formOptionsError.value = ''
+const cargarOpcionesFormulario = async () => {
+  estaCargandoOpcionesFormulario.value = true
+  errorOpcionesFormulario.value = ''
 
   try {
     const { data } = await window.axios.get('/api/offers/form-options')
-    offerFormOptions.value = data || {}
+    opcionesFormularioOferta.value = data || {}
   } catch {
-    formOptionsError.value = 'No se pudieron cargar los campos para crear la oferta.'
+    errorOpcionesFormulario.value = 'No se pudieron cargar los campos para crear la oferta.'
   } finally {
-    isFormOptionsLoading.value = false
+    estaCargandoOpcionesFormulario.value = false
   }
 }
 
-const getOfferStatusLabel = (offer) => {
-  const statusId = Number(offer?.estat_oferta_id)
+const obtenerEtiquetaEstadoOferta = (oferta) => {
+  const idEstado = Number(oferta?.estat_oferta_id)
 
-  if (statusId === 1) {
+  if (idEstado === 1) {
     return 'Pendiente'
   }
 
-  if (statusId === 2) {
+  if (idEstado === 2) {
     return 'Aceptada'
   }
 
-  if (statusId === 3) {
+  if (idEstado === 3) {
     return 'Rechazada'
   }
 
-  return offer?.estat || '-'
+  return oferta?.estat || '-'
 }
 
-const getOfferStatusClass = (offer) => {
-  const statusId = Number(offer?.estat_oferta_id)
+const obtenerClaseEstadoOferta = (oferta) => {
+  const idEstado = Number(oferta?.estat_oferta_id)
 
-  if (statusId === 1) {
+  if (idEstado === 1) {
     return 'status-pending'
   }
 
-  if (statusId === 2) {
+  if (idEstado === 2) {
     return 'status-accepted'
   }
 
-  if (statusId === 3) {
+  if (idEstado === 3) {
     return 'status-rejected'
   }
 
@@ -245,153 +246,153 @@ const getOfferStatusClass = (offer) => {
 }
 
 onMounted(() => {
-  loadOffers()
+  cargarOfertas()
 })
 
-const openViewModal = async (offer) => {
-  isViewModalOpen.value = true
-  isViewLoading.value = true
-  viewErrorMessage.value = ''
-  statusActionError.value = ''
-  selectedOffer.value = null
+const abrirModalVer = async (oferta) => {
+  modalVerAbierto.value = true
+  estaCargandoDetalle.value = true
+  mensajeErrorDetalle.value = ''
+  errorAccionEstado.value = ''
+  ofertaSeleccionada.value = null
 
   try {
-    const { data } = await window.axios.get(`/api/offers/${offer.id}`)
-    selectedOffer.value = data.offer || null
+    const { data } = await window.axios.get(`/api/offers/${oferta.id}`)
+    ofertaSeleccionada.value = data.offer || null
   } catch {
-    viewErrorMessage.value = 'No se pudo cargar el detalle de la oferta.'
+    mensajeErrorDetalle.value = 'No se pudo cargar el detalle de la oferta.'
   } finally {
-    isViewLoading.value = false
+    estaCargandoDetalle.value = false
   }
 }
 
-const closeViewModal = () => {
-  isViewModalOpen.value = false
-  selectedOffer.value = null
-  viewErrorMessage.value = ''
-  statusActionError.value = ''
+const cerrarModalVer = () => {
+  modalVerAbierto.value = false
+  ofertaSeleccionada.value = null
+  mensajeErrorDetalle.value = ''
+  errorAccionEstado.value = ''
 }
 
-const updateOfferStatus = async (statusId) => {
-  if (!selectedOffer.value?.id) {
+const actualizarEstadoOferta = async (idEstado) => {
+  if (!ofertaSeleccionada.value?.id) {
     return
   }
 
-  isStatusUpdating.value = true
-  statusActionError.value = ''
+  actualizandoEstado.value = true
+  errorAccionEstado.value = ''
 
   try {
-    await window.axios.patch(`/api/offers/${selectedOffer.value.id}/status`, {
-      estat_oferta_id: statusId,
+    await window.axios.patch(`/api/offers/${ofertaSeleccionada.value.id}/status`, {
+      estat_oferta_id: idEstado,
     })
-    closeViewModal()
-    await loadOffers()
+    cerrarModalVer()
+    await cargarOfertas()
   } catch (error) {
-    statusActionError.value = error.response?.data?.message || 'No se pudo actualizar el estado de la oferta.'
+    errorAccionEstado.value = error.response?.data?.message || 'No se pudo actualizar el estado de la oferta.'
   } finally {
-    isStatusUpdating.value = false
+    actualizandoEstado.value = false
   }
 }
 
-const openRejectModal = () => {
-  rejectModalError.value = ''
-  isRejectModalOpen.value = true
+const abrirModalRechazo = () => {
+  errorModalRechazo.value = ''
+  modalRechazoAbierto.value = true
 }
 
-const closeRejectModal = () => {
-  isRejectModalOpen.value = false
-  rejectModalError.value = ''
+const cerrarModalRechazo = () => {
+  modalRechazoAbierto.value = false
+  errorModalRechazo.value = ''
 }
 
-const submitRejectOffer = async ({ rao_rebuig }) => {
-  if (!selectedOffer.value?.id) {
+const enviarRechazoOferta = async ({ rao_rebuig }) => {
+  if (!ofertaSeleccionada.value?.id) {
     return
   }
 
-  isStatusUpdating.value = true
-  rejectModalError.value = ''
+  actualizandoEstado.value = true
+  errorModalRechazo.value = ''
 
   try {
-    await window.axios.patch(`/api/offers/${selectedOffer.value.id}/status`, {
+    await window.axios.patch(`/api/offers/${ofertaSeleccionada.value.id}/status`, {
       estat_oferta_id: 3,
       rao_rebuig,
     })
-    closeRejectModal()
-    closeViewModal()
-    await loadOffers()
+    cerrarModalRechazo()
+    cerrarModalVer()
+    await cargarOfertas()
   } catch (error) {
-    rejectModalError.value = error.response?.data?.message || 'No se pudo rechazar la oferta.'
+    errorModalRechazo.value = error.response?.data?.message || 'No se pudo rechazar la oferta.'
   } finally {
-    isStatusUpdating.value = false
+    actualizandoEstado.value = false
   }
 }
 
-const openDeleteModal = (offer) => {
-  submitError.value = ''
-  offerToDelete.value = offer
-  isDeleteModalOpen.value = true
+const abrirModalEliminar = (oferta) => {
+  errorEnvio.value = ''
+  ofertaAEliminar.value = oferta
+  modalEliminarAbierto.value = true
 }
 
-const closeDeleteModal = () => {
-  isDeleteModalOpen.value = false
-  offerToDelete.value = null
+const cerrarModalEliminar = () => {
+  modalEliminarAbierto.value = false
+  ofertaAEliminar.value = null
 }
 
-const openCreateModal = async () => {
-  submitError.value = ''
-  isCreateModalOpen.value = true
+const abrirModalCrear = async () => {
+  errorEnvio.value = ''
+  modalCrearAbierto.value = true
 
-  if (Object.keys(offerFormOptions.value || {}).length > 0) {
+  if (Object.keys(opcionesFormularioOferta.value || {}).length > 0) {
     return
   }
 
-  await loadFormOptions()
+  await cargarOpcionesFormulario()
 }
 
-const closeCreateModal = () => {
-  isCreateModalOpen.value = false
+const cerrarModalCrear = () => {
+  modalCrearAbierto.value = false
 }
 
-const handleCreateOffer = async (payload) => {
-  submitError.value = ''
+const crearOferta = async (datosFormulario) => {
+  errorEnvio.value = ''
 
   try {
     await window.axios.post('/api/offers', {
-      ...payload,
+      ...datosFormulario,
       data_creacio: new Date().toISOString().slice(0, 10),
     })
 
-    closeCreateModal()
-    await loadOffers()
+    cerrarModalCrear()
+    await cargarOfertas()
   } catch (error) {
     if (error.response?.status === 422) {
-      const apiMessage = error.response?.data?.message
-      const validationErrors = error.response?.data?.errors
-      const firstValidationError = validationErrors
-        ? Object.values(validationErrors)[0]?.[0]
+      const mensajeApi = error.response?.data?.message
+      const erroresValidacion = error.response?.data?.errors
+      const primerErrorValidacion = erroresValidacion
+        ? Object.values(erroresValidacion)[0]?.[0]
         : ''
 
-      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario de oferta.'
+      errorEnvio.value = primerErrorValidacion || mensajeApi || 'Revisa los datos del formulario de oferta.'
       return
     }
 
-    submitError.value = error.response?.data?.message || 'No se pudo crear la oferta.'
+    errorEnvio.value = error.response?.data?.message || 'No se pudo crear la oferta.'
   }
 }
 
-const confirmDeleteOffer = async () => {
-  if (!offerToDelete.value?.id) {
+const confirmarEliminarOferta = async () => {
+  if (!ofertaAEliminar.value?.id) {
     return
   }
 
-  submitError.value = ''
+  errorEnvio.value = ''
 
   try {
-    await window.axios.delete(`/api/offers/${offerToDelete.value.id}`)
-    closeDeleteModal()
-    await loadOffers()
+    await window.axios.delete(`/api/offers/${ofertaAEliminar.value.id}`)
+    cerrarModalEliminar()
+    await cargarOfertas()
   } catch {
-    submitError.value = 'No se pudo eliminar la oferta.'
+    errorEnvio.value = 'No se pudo eliminar la oferta.'
   }
 }
 </script>

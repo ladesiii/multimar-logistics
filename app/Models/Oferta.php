@@ -48,6 +48,7 @@ class Oferta extends Model
 
     protected function casts(): array
     {
+        // Los campos de fecha y números se normalizan aquí para evitar lógica repetida.
         return [
             'data_creacio' => 'date',
             'data_validessa_inicial' => 'date',

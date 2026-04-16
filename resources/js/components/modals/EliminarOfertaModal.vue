@@ -19,6 +19,7 @@
 </template>
 
 <script setup>
+// Solo hace falta la oferta para mostrar el identificador en el mensaje.
 defineProps({
   offer: {
     type: Object,

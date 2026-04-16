@@ -1,20 +1,20 @@
 <template>
-    <div v-if="isCheckingSession" class="state-message">Cargando sesión...</div>
+    <div v-if="comprobandoSesion" class="state-message">Cargando sesión...</div>
 
-    <div v-else-if="!isAuthorized" class="state-message">
+    <div v-else-if="!estaAutorizado" class="state-message">
         No tienes permisos para acceder al panel.
     </div>
 
     <div v-else class="main-layout">
         <NavbarVertical
-            :menu-items="availableMenuItems"
-            :active-item="selectedSection"
-            @section-selected="handleSectionSelected"
+            :menu-items="opcionesMenuDisponibles"
+            :active-item="seccionSeleccionada"
+            @section-selected="gestionarSeleccionSeccion"
         />
         <div class="view-container">
             <NavbarHorizontal />
             <main class="page-content">
-                <component :is="currentSectionComponent" />
+                <component :is="componenteSeccionActual" />
             </main>
         </div>
     </div>
@@ -38,74 +38,75 @@ import {
     TruckIcon,
 } from '@heroicons/vue/24/outline'
 
-const isCheckingSession = ref(true)
-const isAuthorized = ref(true)
-const currentUser = ref(null)
+const comprobandoSesion = ref(true)
+const estaAutorizado = ref(true)
+const usuarioActual = ref(null)
 
-const loadUserFromStorage = () => {
-    const storedUser = localStorage.getItem('auth_user')
+const cargarUsuarioDesdeStorage = () => {
+    // Recuperamos el usuario cacheado para pintar el menú antes de consultar la API.
+    const usuarioGuardado = localStorage.getItem('auth_user')
 
-    if (!storedUser) {
+    if (!usuarioGuardado) {
         return null
     }
 
     try {
-        return JSON.parse(storedUser)
+        return JSON.parse(usuarioGuardado)
     } catch {
         return null
     }
 }
 
-const roleType = computed(() => {
-    const roleId = Number(currentUser.value?.rol_id ?? 0)
-    const roleName = String(currentUser.value?.rol || '').toLowerCase()
+const tipoRol = computed(() => {
+    const idRol = Number(usuarioActual.value?.rol_id ?? 0)
+    const nombreRol = String(usuarioActual.value?.rol || '').toLowerCase()
 
-    if (roleId === 1 || roleName.includes('admin')) {
+    if (idRol === 1 || nombreRol.includes('admin')) {
         return 'admin'
     }
 
-    if (roleId === 2 || roleName.includes('operador') || roleName.includes('operator')) {
+    if (idRol === 2 || nombreRol.includes('operador') || nombreRol.includes('operator')) {
         return 'operador'
     }
 
-    if (roleId === 3 || roleName.includes('client')) {
+    if (idRol === 3 || nombreRol.includes('client')) {
         return 'cliente'
     }
 
     return ''
 })
 
-const adminMenuItems = [
+const opcionesMenuAdmin = [
     { text: 'Usuarios', icon: UsersIcon },
     { text: 'Clientes', icon: ClipboardDocumentListIcon },
     { text: 'Ofertas', icon: DocumentTextIcon },
     { text: 'Tracking', icon: TruckIcon },
 ]
 
-const operatorMenuItems = [
+const opcionesMenuOperador = [
     { text: 'Dashboard', icon: Squares2X2Icon },
     { text: 'Clientes', icon: ClipboardDocumentListIcon },
     { text: 'Ofertas', icon: DocumentTextIcon },
     { text: 'Tracking', icon: TruckIcon },
 ]
 
-const clientMenuItems = [
+const opcionesMenuCliente = [
     { text: 'Dashboard', icon: Squares2X2Icon },
     { text: 'Ofertas', icon: DocumentTextIcon },
     { text: 'Tracking', icon: TruckIcon },
 ]
 
-const menuByRole = {
-    admin: adminMenuItems,
-    operador: operatorMenuItems,
-    cliente: clientMenuItems,
+const menuPorRol = {
+    admin: opcionesMenuAdmin,
+    operador: opcionesMenuOperador,
+    cliente: opcionesMenuCliente,
 }
 
-const availableMenuItems = computed(() => menuByRole[roleType.value] || [])
+const opcionesMenuDisponibles = computed(() => menuPorRol[tipoRol.value] || [])
 
-const selectedSection = ref('Dashboard')
+const seccionSeleccionada = ref('Dashboard')
 
-const sectionComponentMap = {
+const mapaComponentesSeccion = {
     Dashboard: DashboardVista,
     Usuarios: ListadoUsuarios,
     Clientes: ListadoClientes,
@@ -113,54 +114,55 @@ const sectionComponentMap = {
     Tracking: ListadoTracking,
 }
 
-const allowedSections = computed(() => availableMenuItems.value.map((item) => item.text))
+const seccionesPermitidas = computed(() => opcionesMenuDisponibles.value.map((item) => item.text))
 
-const currentSectionComponent = computed(() => {
-    const fallbackSection = allowedSections.value[0] || 'Dashboard'
-    const targetSection = allowedSections.value.includes(selectedSection.value)
-        ? selectedSection.value
-        : fallbackSection
+const componenteSeccionActual = computed(() => {
+    const seccionPorDefecto = seccionesPermitidas.value[0] || 'Dashboard'
+    const seccionObjetivo = seccionesPermitidas.value.includes(seccionSeleccionada.value)
+        ? seccionSeleccionada.value
+        : seccionPorDefecto
 
-    return sectionComponentMap[targetSection] || DashboardVista
+    return mapaComponentesSeccion[seccionObjetivo] || DashboardVista
 })
 
-const handleSectionSelected = (sectionName) => {
-    if (!allowedSections.value.includes(sectionName)) {
+const gestionarSeleccionSeccion = (nombreSeccion) => {
+    if (!seccionesPermitidas.value.includes(nombreSeccion)) {
         return
     }
 
-    selectedSection.value = sectionName
+    seccionSeleccionada.value = nombreSeccion
 }
 
 onMounted(async () => {
-    const token = localStorage.getItem('auth_token')
+    const tokenSesion = localStorage.getItem('auth_token')
 
-    if (!token) {
+    if (!tokenSesion) {
         window.location.href = '/'
         return
     }
 
-    currentUser.value = loadUserFromStorage()
+    usuarioActual.value = cargarUsuarioDesdeStorage()
 
     try {
+        // La API confirma que el token sigue siendo válido y devuelve el usuario real.
         const { data } = await window.axios.get('/api/user')
-        const apiUser = data?.user ?? null
+        const usuarioApi = data?.user ?? null
 
-        if (!apiUser) {
+        if (!usuarioApi) {
             throw new Error('Usuario no disponible')
         }
 
-        currentUser.value = {
-            id: apiUser.id,
-            email: apiUser.correu,
-            name: [apiUser.nom, apiUser.cognoms].filter(Boolean).join(' ').trim(),
-            nom: apiUser.nom,
-            cognoms: apiUser.cognoms,
-            rol_id: apiUser.rol_id,
-            rol: apiUser.rol?.rol,
+        usuarioActual.value = {
+            id: usuarioApi.id,
+            email: usuarioApi.correu,
+            name: [usuarioApi.nom, usuarioApi.cognoms].filter(Boolean).join(' ').trim(),
+            nom: usuarioApi.nom,
+            cognoms: usuarioApi.cognoms,
+            rol_id: usuarioApi.rol_id,
+            rol: usuarioApi.rol?.rol,
         }
 
-        localStorage.setItem('auth_user', JSON.stringify(currentUser.value))
+        localStorage.setItem('auth_user', JSON.stringify(usuarioActual.value))
     } catch {
         localStorage.removeItem('auth_token')
         localStorage.removeItem('auth_user')
@@ -169,17 +171,17 @@ onMounted(async () => {
         return
     }
 
-    if (!roleType.value) {
-        isAuthorized.value = false
-        isCheckingSession.value = false
+    if (!tipoRol.value) {
+        estaAutorizado.value = false
+        comprobandoSesion.value = false
         return
     }
 
-    if (allowedSections.value.length > 0) {
-        selectedSection.value = allowedSections.value[0]
+    if (seccionesPermitidas.value.length > 0) {
+        seccionSeleccionada.value = seccionesPermitidas.value[0]
     }
 
-    isCheckingSession.value = false
+    comprobandoSesion.value = false
 })
 </script>
 

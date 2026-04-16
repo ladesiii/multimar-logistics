@@ -19,6 +19,7 @@ class EstatOferta extends Model
         'estat',
     ];
 
+    // Una oferta puede aparecer en este estado.
     public function ofertes(): HasMany
     {
         return $this->hasMany(Oferta::class, 'estat_oferta_id');

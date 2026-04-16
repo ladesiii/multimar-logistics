@@ -1,12 +1,12 @@
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
+  <div class="modal-overlay" @click.self="close">
     <div class="modal-card">
       <header class="modal-header">
         <h2>RECHAZAR OFERTA</h2>
-        <button type="button" class="close-btn" @click="$emit('close')">x</button>
+        <button type="button" class="close-btn" @click="close">x</button>
       </header>
 
-      <form class="modal-form" @submit.prevent="handleSubmit">
+      <form class="modal-form" @submit.prevent="enviarFormulario">
         <p class="helper-text">
           Indica el motivo de rechazo para la oferta #{{ offer?.id }}.
         </p>
@@ -14,7 +14,7 @@
         <label for="reject_reason">Motivo</label>
         <textarea
           id="reject_reason"
-          v-model="reason"
+          v-model="motivo"
           class="reason-textarea"
           rows="4"
           maxlength="255"
@@ -25,7 +25,7 @@
         <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
 
         <div class="confirm-actions">
-          <button type="button" class="cancel-btn" :disabled="isSubmitting" @click="$emit('close')">Cancelar</button>
+          <button type="button" class="cancel-btn" :disabled="isSubmitting" @click="close">Cancelar</button>
           <button type="submit" class="confirm-btn" :disabled="isSubmitting">Rechazar oferta</button>
         </div>
       </form>
@@ -52,10 +52,15 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'submit'])
-const reason = ref('')
+const motivo = ref('')
 
-const handleSubmit = () => {
-  emit('submit', { rao_rebuig: reason.value.trim() })
+const close = () => {
+  motivo.value = ''
+  emit('close')
+}
+
+const enviarFormulario = () => {
+  emit('submit', { rao_rebuig: motivo.value.trim() })
 }
 </script>
 

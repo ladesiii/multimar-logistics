@@ -6,21 +6,21 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
-      <form class="modal-form" @submit.prevent="handleSubmit">
+      <form class="modal-form" @submit.prevent="enviarFormulario">
         <label for="nom">Nombre</label>
-        <input id="nom" v-model="form.nom" type="text" required>
+        <input id="nom" v-model="formulario.nom" type="text" required>
 
         <label for="cognoms">Apellidos</label>
-        <input id="cognoms" v-model="form.cognoms" type="text" required>
+        <input id="cognoms" v-model="formulario.cognoms" type="text" required>
 
         <label for="email">Correo electronico</label>
-        <input id="email" v-model="form.email" type="email" required>
+        <input id="email" v-model="formulario.email" type="email" required>
 
         <label for="password">Contraseña</label>
-        <input id="password" v-model="form.password" type="password" required>
+        <input id="password" v-model="formulario.password" type="password" required>
 
         <label for="rol_id">Rol</label>
-        <select id="rol_id" v-model="form.rol_id" required>
+        <select id="rol_id" v-model="formulario.rol_id" required>
           <option value="1">Admin</option>
           <option value="2">Operador</option>
         </select>
@@ -36,7 +36,7 @@ import { reactive } from 'vue'
 
 const emit = defineEmits(['close', 'submit'])
 
-const form = reactive({
+const formulario = reactive({
   nom: '',
   cognoms: '',
   email: '',
@@ -44,10 +44,11 @@ const form = reactive({
   rol_id: '2',
 })
 
-const handleSubmit = () => {
+const enviarFormulario = () => {
+  // Convertimos el rol a número porque la API espera un entero.
   emit('submit', {
-    ...form,
-    rol_id: Number(form.rol_id),
+    ...formulario,
+    rol_id: Number(formulario.rol_id),
   })
 }
 </script>

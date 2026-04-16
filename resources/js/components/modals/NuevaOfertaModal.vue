@@ -9,7 +9,7 @@
       <p v-if="isLoading" class="form-status">Cargando opciones del formulario...</p>
       <p v-else-if="errorMessage" class="form-status error">{{ errorMessage }}</p>
 
-      <form v-else class="modal-form" @submit.prevent="handleSubmit">
+      <form v-else class="modal-form" @submit.prevent="enviarFormulario">
         <section class="form-section">
           <h3>1) Informacion principal</h3>
           <div class="fields-grid">
@@ -239,24 +239,24 @@ const normalizeText = (value) => String(value || '')
   .replace(/[ùúü]/g, 'u')
   .replace(/ñ/g, 'n')
 
-const findSelectedLabel = (list, id) => {
-  const selected = (list || []).find((item) => String(item.id) === String(id))
-  return selected?.label || ''
+const obtenerEtiquetaSeleccionada = (lista, id) => {
+  const elementoSeleccionado = (lista || []).find((item) => String(item.id) === String(id))
+  return elementoSeleccionado?.label || ''
 }
 
 const isMaritimeTransport = computed(() => {
-  const label = normalizeText(findSelectedLabel(props.options.tipus_transports, form.tipus_transport_id))
-  return label.includes('maritim')
+  const etiqueta = normalizeText(obtenerEtiquetaSeleccionada(props.options.tipus_transports, form.tipus_transport_id))
+  return etiqueta.includes('maritim')
 })
 
 const isAirTransport = computed(() => {
-  const label = normalizeText(findSelectedLabel(props.options.tipus_transports, form.tipus_transport_id))
-  return label.includes('aeri') || label.includes('aereo')
+  const etiqueta = normalizeText(obtenerEtiquetaSeleccionada(props.options.tipus_transports, form.tipus_transport_id))
+  return etiqueta.includes('aeri') || etiqueta.includes('aereo')
 })
 
 const showContainerType = computed(() => {
-  const label = normalizeText(findSelectedLabel(props.options.tipus_carrega, form.tipus_carrega_id))
-  return label.includes('contenidor')
+  const etiqueta = normalizeText(obtenerEtiquetaSeleccionada(props.options.tipus_carrega, form.tipus_carrega_id))
+  return etiqueta.includes('contenidor')
 })
 
 const isRejectedStatus = computed(() => {
@@ -309,41 +309,41 @@ watch(isRejectedStatus, (active) => {
   }
 })
 
-const toNullableNumber = (value, decimals = false) => {
+const convertirANumeroONulo = (value, permitirDecimales = false) => {
   if (value === '' || value === null || value === undefined) {
     return null
   }
 
-  const parsed = decimals ? Number.parseFloat(value) : Number.parseInt(value, 10)
-  return Number.isNaN(parsed) ? null : parsed
+  const numeroParseado = permitirDecimales ? Number.parseFloat(value) : Number.parseInt(value, 10)
+  return Number.isNaN(numeroParseado) ? null : numeroParseado
 }
 
-const handleSubmit = () => {
-  const payload = {
-    tipus_transport_id: toNullableNumber(form.tipus_transport_id),
-    tipus_fluxe_id: toNullableNumber(form.tipus_fluxe_id),
-    tipus_carrega_id: toNullableNumber(form.tipus_carrega_id),
-    tipus_incoterm_id: toNullableNumber(form.tipus_incoterm_id),
-    tipus_validacio_id: toNullableNumber(form.tipus_validacio_id),
-    estat_oferta_id: toNullableNumber(form.estat_oferta_id),
-    client_id: toNullableNumber(form.client_id),
-    transportista_id: toNullableNumber(form.transportista_id),
-    linia_transport_maritim_id: toNullableNumber(form.linia_transport_maritim_id),
-    port_origen_id: toNullableNumber(form.port_origen_id),
-    port_desti_id: toNullableNumber(form.port_desti_id),
-    aeroport_origen_id: toNullableNumber(form.aeroport_origen_id),
-    aeroport_desti_id: toNullableNumber(form.aeroport_desti_id),
-    tipus_contenidor_id: toNullableNumber(form.tipus_contenidor_id),
-    pes_brut: toNullableNumber(form.pes_brut, true),
-    volum: toNullableNumber(form.volum, true),
-    preu: toNullableNumber(form.preu),
+const enviarFormulario = () => {
+  const datosOferta = {
+    tipus_transport_id: convertirANumeroONulo(form.tipus_transport_id),
+    tipus_fluxe_id: convertirANumeroONulo(form.tipus_fluxe_id),
+    tipus_carrega_id: convertirANumeroONulo(form.tipus_carrega_id),
+    tipus_incoterm_id: convertirANumeroONulo(form.tipus_incoterm_id),
+    tipus_validacio_id: convertirANumeroONulo(form.tipus_validacio_id),
+    estat_oferta_id: convertirANumeroONulo(form.estat_oferta_id),
+    client_id: convertirANumeroONulo(form.client_id),
+    transportista_id: convertirANumeroONulo(form.transportista_id),
+    linia_transport_maritim_id: convertirANumeroONulo(form.linia_transport_maritim_id),
+    port_origen_id: convertirANumeroONulo(form.port_origen_id),
+    port_desti_id: convertirANumeroONulo(form.port_desti_id),
+    aeroport_origen_id: convertirANumeroONulo(form.aeroport_origen_id),
+    aeroport_desti_id: convertirANumeroONulo(form.aeroport_desti_id),
+    tipus_contenidor_id: convertirANumeroONulo(form.tipus_contenidor_id),
+    pes_brut: convertirANumeroONulo(form.pes_brut, true),
+    volum: convertirANumeroONulo(form.volum, true),
+    preu: convertirANumeroONulo(form.preu),
     comentaris: form.comentaris?.trim() || null,
     rao_rebuig: form.rao_rebuig?.trim() || null,
     data_validessa_inicial: form.data_validessa_inicial || null,
     data_validessa_final: form.data_validessa_final || null,
   }
 
-  emit('submit', payload)
+  emit('submit', datosOferta)
 }
 </script>
 

@@ -6,27 +6,27 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
-      <form class="modal-form" @submit.prevent="handleSubmit">
+      <form class="modal-form" @submit.prevent="enviarFormulario">
         <label for="edit-nom">Nombre</label>
-        <input id="edit-nom" v-model="form.nom" type="text" required>
+        <input id="edit-nom" v-model="formulario.nom" type="text" required>
 
         <label for="edit-cognoms">Apellidos</label>
-        <input id="edit-cognoms" v-model="form.cognoms" type="text" required>
+        <input id="edit-cognoms" v-model="formulario.cognoms" type="text" required>
 
         <label for="edit-email">Correo electronico</label>
-        <input id="edit-email" v-model="form.email" type="email" required>
+        <input id="edit-email" v-model="formulario.email" type="email" required>
 
         <label for="edit-password">Contrasena (opcional)</label>
-        <input id="edit-password" v-model="form.password" type="password" placeholder="Dejar vacio para no cambiar">
+        <input id="edit-password" v-model="formulario.password" type="password" placeholder="Dejar vacio para no cambiar">
 
         <label for="edit-nom_empresa">Empresa</label>
-        <input id="edit-nom_empresa" v-model="form.nom_empresa" type="text" required>
+        <input id="edit-nom_empresa" v-model="formulario.nom_empresa" type="text" required>
 
         <label for="edit-cif_nif">CIF/NIF</label>
-        <input id="edit-cif_nif" v-model="form.cif_nif" type="text" required>
+        <input id="edit-cif_nif" v-model="formulario.cif_nif" type="text" required>
 
         <label for="edit-telefon">Telefono</label>
-        <input id="edit-telefon" v-model="form.telefon" type="text">
+        <input id="edit-telefon" v-model="formulario.telefon" type="text">
 
         <button type="submit" class="submit-btn">Guardar cambios</button>
       </form>
@@ -46,7 +46,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const form = reactive({
+const formulario = reactive({
   nom: '',
   cognoms: '',
   email: '',
@@ -56,26 +56,26 @@ const form = reactive({
   telefon: '',
 })
 
-const hydrateForm = () => {
-  form.nom = props.client?.nom || ''
-  form.cognoms = props.client?.cognoms || ''
-  form.email = props.client?.email || ''
-  form.password = ''
-  form.nom_empresa = props.client?.nom_empresa || ''
-  form.cif_nif = props.client?.cif_nif || ''
-  form.telefon = props.client?.telefon || ''
+const cargarFormulario = () => {
+  formulario.nom = props.client?.nom || ''
+  formulario.cognoms = props.client?.cognoms || ''
+  formulario.email = props.client?.email || ''
+  formulario.password = ''
+  formulario.nom_empresa = props.client?.nom_empresa || ''
+  formulario.cif_nif = props.client?.cif_nif || ''
+  formulario.telefon = props.client?.telefon || ''
 }
 
 watch(
   () => props.client,
   () => {
-    hydrateForm()
+    cargarFormulario()
   },
   { immediate: true }
 )
 
-const handleSubmit = () => {
-  emit('submit', { ...form })
+const enviarFormulario = () => {
+  emit('submit', { ...formulario })
 }
 </script>
 

@@ -11,43 +11,46 @@ class VerificarRol
 {
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        $user = $request->user();
+        $usuario = $request->user();
 
-        if (! $user) {
-            return $this->forbidden($request, 'No autenticado.');
+        if (! $usuario) {
+            return $this->respuestaProhibido($request, 'No autenticado.');
         }
 
-        $normalizedRoles = array_values(array_filter(array_map(
-            fn (string $role) => $this->normalizeRoleName($role),
+        // Convierte los roles recibidos en una lista normalizada (admin/operador/cliente).
+        $rolesNormalizados = array_values(array_filter(array_map(
+            fn (string $rol) => $this->normalizarNombreRol($rol),
             $roles
         )));
 
-        if ($normalizedRoles === []) {
+        // Si no se pide ningun rol concreto, deja pasar.
+        if ($rolesNormalizados === []) {
             return $next($request);
         }
 
-        if ($this->userHasAnyRole($user, $normalizedRoles)) {
+        // Solo deja pasar si el usuario tiene al menos uno de los roles esperados.
+        if ($this->usuarioTieneAlgunRol($usuario, $rolesNormalizados)) {
             return $next($request);
         }
 
-        return $this->forbidden($request, 'No tienes permiso para acceder a este recurso.');
+        return $this->respuestaProhibido($request, 'No tienes permiso para acceder a este recurso.');
     }
 
-    private function userHasAnyRole($user, array $expectedRoles): bool
+    private function usuarioTieneAlgunRol($usuario, array $rolesEsperados): bool
     {
-        $roleName = $this->normalizeRoleName((string) ($user->rol?->rol ?? ''));
-        $roleId = (int) ($user->rol_id ?? 0);
+        $nombreRol = $this->normalizarNombreRol((string) ($usuario->rol?->rol ?? ''));
+        $idRol = (int) ($usuario->rol_id ?? 0);
 
-        foreach ($expectedRoles as $expectedRole) {
-            if ($expectedRole === 'admin' && ($roleName === 'admin' || $roleId === 1)) {
+        foreach ($rolesEsperados as $rolEsperado) {
+            if ($rolEsperado === 'admin' && ($nombreRol === 'admin' || $idRol === 1)) {
                 return true;
             }
 
-            if ($expectedRole === 'operador' && ($roleName === 'operador' || $roleId === 2)) {
+            if ($rolEsperado === 'operador' && ($nombreRol === 'operador' || $idRol === 2)) {
                 return true;
             }
 
-            if ($expectedRole === 'cliente' && ($roleName === 'cliente' || $roleId === 3)) {
+            if ($rolEsperado === 'cliente' && ($nombreRol === 'cliente' || $idRol === 3)) {
                 return true;
             }
         }
@@ -55,33 +58,34 @@ class VerificarRol
         return false;
     }
 
-    private function normalizeRoleName(string $value): string
+    private function normalizarNombreRol(string $valor): string
     {
-        $clean = strtolower(trim($value));
+        $rolLimpio = strtolower(trim($valor));
 
-        if (str_contains($clean, 'admin')) {
+        if (str_contains($rolLimpio, 'admin')) {
             return 'admin';
         }
 
-        if (str_contains($clean, 'operador') || str_contains($clean, 'operator')) {
+        if (str_contains($rolLimpio, 'operador') || str_contains($rolLimpio, 'operator')) {
             return 'operador';
         }
 
-        if (str_contains($clean, 'client')) {
+        if (str_contains($rolLimpio, 'client')) {
             return 'cliente';
         }
 
-        return $clean;
+        return $rolLimpio;
     }
 
-    private function forbidden(Request $request, string $message): Response
+    private function respuestaProhibido(Request $request, string $mensaje): Response
     {
+        // Si es API (o espera JSON), devuelve error JSON; en web normal, aborta con 403.
         if ($request->expectsJson() || $request->is('api/*')) {
             return new JsonResponse([
-                'message' => $message,
+                'message' => $mensaje,
             ], 403);
         }
 
-        abort(403, $message);
+        abort(403, $mensaje);
     }
 }

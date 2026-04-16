@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Usuari;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Rol extends Model
 {
@@ -15,7 +15,8 @@ class Rol extends Model
         'rol',
     ];
 
-    public function usuaris()
+    // Un rol puede estar asignado a varios usuarios.
+    public function usuaris(): HasMany
     {
         return $this->hasMany(Usuari::class, 'rol_id');
     }

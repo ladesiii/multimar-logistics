@@ -5,6 +5,7 @@ import Dashboard from './components/paginas/Dashboard.vue';
 import EditarPerfil from './components/paginas/EditarPerfil.vue';
 
 
+// Registramos las páginas Vue que se montan desde las vistas Blade.
 const app = createApp({});
 app.component('login', Login);
 app.component('dashboard', Dashboard);

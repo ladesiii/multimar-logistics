@@ -6,27 +6,27 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
-      <form class="modal-form" @submit.prevent="handleSubmit">
+      <form class="modal-form" @submit.prevent="enviarFormulario">
         <label for="nom">Nombre</label>
-        <input id="nom" v-model="form.nom" type="text" required>
+        <input id="nom" v-model="formulario.nom" type="text" required>
 
         <label for="cognoms">Apellidos</label>
-        <input id="cognoms" v-model="form.cognoms" type="text" required>
+        <input id="cognoms" v-model="formulario.cognoms" type="text" required>
 
         <label for="email">Correo electronico</label>
-        <input id="email" v-model="form.email" type="email" required>
+        <input id="email" v-model="formulario.email" type="email" required>
 
-        <label for="password">Contrasena</label>
-        <input id="password" v-model="form.password" type="password" required>
+        <label for="password">Contraseña</label>
+        <input id="password" v-model="formulario.password" type="password" required>
 
         <label for="nom_empresa">Empresa</label>
-        <input id="nom_empresa" v-model="form.nom_empresa" type="text" required>
+        <input id="nom_empresa" v-model="formulario.nom_empresa" type="text" required>
 
         <label for="cif_nif">CIF/NIF</label>
-        <input id="cif_nif" v-model="form.cif_nif" type="text" required>
+        <input id="cif_nif" v-model="formulario.cif_nif" type="text" required>
 
         <label for="telefon">Telefono</label>
-        <input id="telefon" v-model="form.telefon" type="text">
+        <input id="telefon" v-model="formulario.telefon" type="text">
 
         <button type="submit" class="submit-btn">Crear Cliente</button>
       </form>
@@ -39,7 +39,7 @@ import { reactive } from 'vue'
 
 const emit = defineEmits(['close', 'submit'])
 
-const form = reactive({
+const formulario = reactive({
   nom: '',
   cognoms: '',
   email: '',
@@ -49,8 +49,9 @@ const form = reactive({
   telefon: '',
 })
 
-const handleSubmit = () => {
-  emit('submit', { ...form })
+const enviarFormulario = () => {
+  // Se envía el formulario tal cual porque el padre ya hace la petición a la API.
+  emit('submit', { ...formulario })
 }
 </script>
 

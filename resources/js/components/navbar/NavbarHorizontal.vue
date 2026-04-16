@@ -8,12 +8,12 @@
       </button>
 
       <button
-        ref="settingsButtonRef"
+        ref="botonAjustesRef"
         class="nav-icon-btn"
         type="button"
         aria-label="Abrir ajustes"
-        :aria-expanded="isSettingsOpen"
-        @click="toggleSettings"
+        :aria-expanded="ajustesAbiertos"
+        @click="alternarAjustes"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="nav-icon">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.041.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" />
@@ -21,19 +21,19 @@
         </svg>
       </button>
 
-      <div class="user-profile" role="button" tabindex="0" title="Editar perfil" @click="goToProfile" @keydown.enter="goToProfile" @keydown.space.prevent="goToProfile">
+      <div class="user-profile" role="button" tabindex="0" title="Editar perfil" @click="irAPerfil" @keydown.enter="irAPerfil" @keydown.space.prevent="irAPerfil">
         <div class="user-icon-wrapper">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="nav-icon">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
           </svg>
         </div>
-        <span class="user-name">{{ userName }}</span>
+        <span class="user-name">{{ nombreUsuario }}</span>
       </div>
     </div>
 
     <div
-      v-if="isSettingsOpen"
-      ref="settingsPanelRef"
+      v-if="ajustesAbiertos"
+      ref="panelAjustesRef"
       class="settings-dropdown"
       role="dialog"
       aria-label="Ajustes"
@@ -41,11 +41,11 @@
       <h3>Ajustes</h3>
 
       <label for="language-select">Idioma</label>
-      <select id="language-select" v-model="selectedLanguage" class="settings-select">
+      <select id="language-select" v-model="idiomaSeleccionado" class="settings-select">
         <option value="es">Español</option>
       </select>
 
-      <button type="button" class="logout-btn" @click="handleLogout">Cerrar sesión</button>
+      <button type="button" class="logout-btn" @click="cerrarSesion">Cerrar sesión</button>
     </div>
   </header>
 </template>
@@ -53,48 +53,48 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
-const userName = ref('Usuario')
-const isSettingsOpen = ref(false)
-const selectedLanguage = ref('es')
-const settingsButtonRef = ref(null)
-const settingsPanelRef = ref(null)
+const nombreUsuario = ref('Usuario')
+const ajustesAbiertos = ref(false)
+const idiomaSeleccionado = ref('es')
+const botonAjustesRef = ref(null)
+const panelAjustesRef = ref(null)
 
-const toggleSettings = () => {
-  isSettingsOpen.value = !isSettingsOpen.value
+const alternarAjustes = () => {
+  ajustesAbiertos.value = !ajustesAbiertos.value
 }
 
-const closeSettings = () => {
-  isSettingsOpen.value = false
+const cerrarAjustes = () => {
+  ajustesAbiertos.value = false
 }
 
-const handleOutsideClick = (event) => {
-  if (!isSettingsOpen.value) {
+const gestionarClickFuera = (event) => {
+  if (!ajustesAbiertos.value) {
     return
   }
 
-  const clickedOnButton = settingsButtonRef.value?.contains(event.target)
-  const clickedOnPanel = settingsPanelRef.value?.contains(event.target)
+  const clicEnBoton = botonAjustesRef.value?.contains(event.target)
+  const clicEnPanel = panelAjustesRef.value?.contains(event.target)
 
-  if (!clickedOnButton && !clickedOnPanel) {
-    closeSettings()
+  if (!clicEnBoton && !clicEnPanel) {
+    cerrarAjustes()
   }
 }
 
-const handleKeydown = (event) => {
+const gestionarTeclado = (event) => {
   if (event.key === 'Escape') {
-    closeSettings()
+    cerrarAjustes()
   }
 }
 
-const handleLogout = async () => {
-  const token = localStorage.getItem('auth_token')
+const cerrarSesion = async () => {
+  const tokenSesion = localStorage.getItem('auth_token')
 
   try {
-    if (token) {
+    if (tokenSesion) {
       await window.axios.post('/api/logout')
     }
   } catch {
-    // No bloqueamos el cierre local si falla la llamada al backend.
+    // Aunque falle el backend, cerramos la sesión local para no dejar el token activo.
   } finally {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user')
@@ -103,31 +103,33 @@ const handleLogout = async () => {
   }
 }
 
-const goToProfile = () => {
-  window.location.href = '/editarperfil'
+const irAPerfil = () => {
+  // La pantalla de perfil se sirve como otra vista Blade.
+  window.location.href = window.appRoutes?.profileEdit || '/editar-perfil'
 }
 
 onMounted(() => {
-  const storedUser = localStorage.getItem('auth_user')
+  const usuarioGuardado = localStorage.getItem('auth_user')
 
-  if (! storedUser) {
+  if (! usuarioGuardado) {
     return
   }
 
   try {
-    const user = JSON.parse(storedUser)
-    userName.value = user.name || [user.nom, user.cognoms].filter(Boolean).join(' ') || user.email || 'Usuario'
+    const usuario = JSON.parse(usuarioGuardado)
+    nombreUsuario.value = usuario.name || [usuario.nom, usuario.cognoms].filter(Boolean).join(' ') || usuario.email || 'Usuario'
   } catch {
-    userName.value = 'Usuario'
+    nombreUsuario.value = 'Usuario'
   }
 
-  document.addEventListener('click', handleOutsideClick)
-  document.addEventListener('keydown', handleKeydown)
+  // Cerramos el dropdown si el usuario hace clic fuera o pulsa Escape.
+  document.addEventListener('click', gestionarClickFuera)
+  document.addEventListener('keydown', gestionarTeclado)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleOutsideClick)
-  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('click', gestionarClickFuera)
+  document.removeEventListener('keydown', gestionarTeclado)
 })
 </script>
 

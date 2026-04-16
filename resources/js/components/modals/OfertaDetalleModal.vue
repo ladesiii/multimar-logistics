@@ -223,6 +223,12 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'accept', 'reject'])
 
+const OFFER_STATUS = {
+  pending: 1,
+  accepted: 2,
+  rejected: 3,
+}
+
 const normalizeText = (value) => String(value || '')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
@@ -237,13 +243,9 @@ const showContainerType = computed(() => {
   const loadType = normalizeText(props.offer?.tipus_carrega)
   return loadType.includes('contenidor') || Boolean(props.offer?.tipus_contenidor_id)
 })
-const isRejectedOffer = computed(() => {
-  const status = normalizeText(props.offer?.estat)
-  return status.includes('rebutjad') || status.includes('rechazad')
-})
-const isPendingOffer = computed(() => Number(props.offer?.estat_oferta_id) === 1)
-const isAcceptedOffer = computed(() => Number(props.offer?.estat_oferta_id) === 2)
-const isRejectedOfferById = computed(() => Number(props.offer?.estat_oferta_id) === 3)
+const isPendingOffer = computed(() => Number(props.offer?.estat_oferta_id) === OFFER_STATUS.pending)
+const isAcceptedOffer = computed(() => Number(props.offer?.estat_oferta_id) === OFFER_STATUS.accepted)
+const isRejectedOfferById = computed(() => Number(props.offer?.estat_oferta_id) === OFFER_STATUS.rejected)
 
 const close = () => {
   emit('close')
@@ -252,15 +254,15 @@ const close = () => {
 const getOfferStatusLabel = (offer) => {
   const statusId = Number(offer?.estat_oferta_id)
 
-  if (statusId === 1) {
+  if (statusId === OFFER_STATUS.pending) {
     return 'Pendiente'
   }
 
-  if (statusId === 2) {
+  if (statusId === OFFER_STATUS.accepted) {
     return 'Aceptada'
   }
 
-  if (statusId === 3) {
+  if (statusId === OFFER_STATUS.rejected) {
     return 'Rechazada'
   }
 
@@ -270,15 +272,15 @@ const getOfferStatusLabel = (offer) => {
 const getOfferStatusClass = (offer) => {
   const statusId = Number(offer?.estat_oferta_id)
 
-  if (statusId === 1) {
+  if (statusId === OFFER_STATUS.pending) {
     return 'status-pending'
   }
 
-  if (statusId === 2) {
+  if (statusId === OFFER_STATUS.accepted) {
     return 'status-accepted'
   }
 
-  if (statusId === 3) {
+  if (statusId === OFFER_STATUS.rejected) {
     return 'status-rejected'
   }
 

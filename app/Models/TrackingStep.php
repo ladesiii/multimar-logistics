@@ -19,6 +19,7 @@ class TrackingStep extends Model
         'nom',
     ];
 
+    // Un paso de tracking puede estar asociado a varias ofertas.
     public function ofertes(): HasMany
     {
         return $this->hasMany(Oferta::class, 'tracking_step_id');

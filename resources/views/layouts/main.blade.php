@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>@yield('title', 'Multimar Logistics')</title>
+    {{-- Vite carga los estilos y el JavaScript principal de la aplicación. --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -224,6 +224,7 @@ class OfertesController extends Controller
             ]);
         }
 
+        // Esta consulta junta varias tablas para generar el tracking en una sola respuesta.
         $query = DB::table('ofertes as o')
             ->leftJoin('tipus_transports as tt', 'o.tipus_transport_id', '=', 'tt.id')
             ->leftJoin('tipus_incoterms as ti', 'o.tipus_incoterm_id', '=', 'ti.id')
@@ -357,6 +358,7 @@ class OfertesController extends Controller
 
     private function serializarDetalleOferta(int $offerId): array
     {
+        // El detalle usa muchos joins para reconstruir la oferta con todos sus catálogos.
         $offer = DB::table('ofertes as o')
             ->leftJoin('clients as c', 'o.client_id', '=', 'c.id')
             ->leftJoin('usuaris as op', 'o.operador_id', '=', 'op.id')
@@ -529,7 +531,7 @@ class OfertesController extends Controller
             || str_contains($roleName, 'client');
     }
 
-    private function obtenerIdClientePorUsuario($user): ?int
+    private function obtenerIdClientePorUsuario($user): ?int // Obtiene el ID del cliente asociado al usuario autenticado.
     {
         if (! $user) {
             return null;
@@ -540,7 +542,7 @@ class OfertesController extends Controller
         return $user->client?->id ? (int) $user->client->id : null;
     }
 
-    private function obtenerOpciones(string $table, array $labelColumns): array
+    private function obtenerOpciones(string $table, array $labelColumns): array // Obtiene las opciones para un desplegable a partir de los datos de una tabla.
     {
         $rows = DB::table($table)
             ->orderBy('id')
@@ -584,7 +586,7 @@ class OfertesController extends Controller
             ->all();
     }
 
-    private function buscarIdEstadoPorPalabras(array $statuses, array $keywords): ?int
+    private function buscarIdEstadoPorPalabras(array $statuses, array $keywords): ?int // Busca el ID de un estado en base a palabras clave.
     {
         foreach ($statuses as $status) {
             $label = $this->normalizarTexto((string) ($status['label'] ?? ''));
@@ -599,7 +601,7 @@ class OfertesController extends Controller
         return null;
     }
 
-    private function normalizarTexto(string $value): string
+    private function normalizarTexto(string $value): string // Normaliza el texto para facilitar las comparaciones, eliminando acentos, diéresis, eñes y convirtiendo a minúsculas.
     {
         $normalized = strtolower(trim($value));
 
@@ -610,7 +612,7 @@ class OfertesController extends Controller
         );
     }
 
-    private function resolverNombrePasoTrackingInicial(): string
+    private function resolverNombrePasoTrackingInicial(): string // Busca el nombre del primer paso de tracking ordenado por 'ordre' y luego por 'id', para mostrarlo como estado inicial en el tracking.
     {
         $firstStep = TrackingStep::query()
             ->orderBy('ordre')
@@ -622,7 +624,7 @@ class OfertesController extends Controller
             : 'En tracking';
     }
 
-    private function resolverIdPasoTrackingInicial(): ?int
+    private function resolverIdPasoTrackingInicial(): ?int // Busca el ID del primer paso de tracking ordenado por 'ordre' y luego por 'id', para asignarlo a una oferta cuando se acepta.
     {
         $firstStepId = TrackingStep::query()
             ->orderBy('ordre')
@@ -632,7 +634,7 @@ class OfertesController extends Controller
         return $firstStepId ? (int) $firstStepId : null;
     }
 
-    private function construirRutaTracking($row): string
+    private function construirRutaTracking($row): string // Construye una representación de la ruta de tracking a partir de los datos disponibles en el registro, priorizando puertos y aeropuertos.
     {
         $portOrigin = trim((string) ($row->port_origen ?? ''));
         $portDest = trim((string) ($row->port_desti ?? ''));
@@ -658,7 +660,7 @@ class OfertesController extends Controller
         return '-';
     }
 
-    private function resolverIdEstadoPendiente(): ?int
+    private function resolverIdEstadoPendiente(): ?int // Busca el ID del estado "Pendiente" en las opciones de estados de ofertas, utilizando palabras clave para identificarlo.
     {
         $rows = DB::table('estats_ofertes')
             ->orderBy('id')
@@ -680,7 +682,7 @@ class OfertesController extends Controller
         return isset($rows[0]?->id) ? (int) $rows[0]->id : null;
     }
 
-    private function soportaColumnaPasoTracking(): bool
+    private function soportaColumnaPasoTracking(): bool // Verifica si la tabla 'ofertes' tiene la columna 'tracking_step_id' para determinar si se pueden gestionar los pasos de tracking.
     {
         return Schema::hasColumn('ofertes', 'tracking_step_id');
     }

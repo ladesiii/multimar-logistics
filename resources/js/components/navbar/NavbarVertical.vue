@@ -24,7 +24,7 @@
 <script setup>
 import logoMultimar from '../../../assets/multimar-logistics.png'
 
-const props = defineProps({
+defineProps({
   menuItems: {
     type: Array,
     required: true,
@@ -38,6 +38,7 @@ const props = defineProps({
 const emit = defineEmits(['section-selected'])
 
 const setActive = (itemText) => {
+  // El contenedor padre decide qué sección mostrar.
   emit('section-selected', itemText)
 }
 </script>

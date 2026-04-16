@@ -9,27 +9,27 @@
         </div>
       </header>
 
-      <p v-if="isLoading" class="state-message">Cargando perfil...</p>
-      <p v-else-if="loadError" class="state-message error">{{ loadError }}</p>
+      <p v-if="estaCargando" class="state-message">Cargando perfil...</p>
+      <p v-else-if="errorCarga" class="state-message error">{{ errorCarga }}</p>
 
-      <form v-else class="profile-form" @submit.prevent="handleSubmit">
+      <form v-else class="profile-form" @submit.prevent="guardarPerfil">
         <div class="two-columns">
           <section class="section-panel">
             <h2>Información personal</h2>
             <div class="fields-grid">
               <div class="field full-width">
                 <label for="nom">Nombre</label>
-                <input id="nom" v-model="form.nom" type="text" required>
+                <input id="nom" v-model="formulario.nom" type="text" required>
               </div>
 
               <div class="field full-width">
                 <label for="cognoms">Apellidos</label>
-                <input id="cognoms" v-model="form.cognoms" type="text" required>
+                <input id="cognoms" v-model="formulario.cognoms" type="text" required>
               </div>
 
               <div class="field full-width">
                 <label for="email">Correo electrónico</label>
-                <input id="email" v-model="form.email" type="email" required>
+                <input id="email" v-model="formulario.email" type="email" required>
               </div>
             </div>
           </section>
@@ -42,13 +42,13 @@
                 <div class="input-with-action">
                   <input
                     id="current-password"
-                    v-model="form.currentPassword"
+                    v-model="formulario.currentPassword"
                     type="password"
                     placeholder="Introduce tu contraseña actual"
-                    @input="onCurrentPasswordInput"
+                    @input="alEscribirContrasenaActual"
                   >
-                  <button type="button" class="secondary-btn inline-btn" @click="verifyCurrentPassword" :disabled="isVerifyingPassword || !form.currentPassword.trim()">
-                    {{ isVerifyingPassword ? 'Verificando...' : 'Verificar' }}
+                  <button type="button" class="secondary-btn inline-btn" @click="verificarContrasenaActual" :disabled="estaVerificandoContrasena || !formulario.currentPassword.trim()">
+                    {{ estaVerificandoContrasena ? 'Verificando...' : 'Verificar' }}
                   </button>
                 </div>
                 <p class="field-help">Debes verificarla para poder cambiar la contraseña.</p>
@@ -58,10 +58,10 @@
                 <label for="new-password">Nueva contraseña</label>
                 <input
                   id="new-password"
-                  v-model="form.newPassword"
+                  v-model="formulario.newPassword"
                   type="password"
                   placeholder="Nueva contraseña"
-                  :disabled="!isPasswordVerified"
+                  :disabled="!contrasenaVerificada"
                 >
               </div>
 
@@ -69,25 +69,25 @@
                 <label for="confirm-password">Confirmar nueva contraseña</label>
                 <input
                   id="confirm-password"
-                  v-model="form.confirmPassword"
+                  v-model="formulario.confirmPassword"
                   type="password"
                   placeholder="Repite la nueva contraseña"
-                  :disabled="!isPasswordVerified"
+                  :disabled="!contrasenaVerificada"
                 >
               </div>
 
-              <p v-if="isPasswordVerified" class="state-message success compact">Contraseña actual verificada. Ya puedes escribir la nueva contraseña.</p>
+              <p v-if="contrasenaVerificada" class="state-message success compact">Contraseña actual verificada. Ya puedes escribir la nueva contraseña.</p>
             </div>
           </section>
         </div>
 
-        <p v-if="submitMessage" class="state-message success">{{ submitMessage }}</p>
-        <p v-if="submitError" class="state-message error">{{ submitError }}</p>
+        <p v-if="mensajeExito" class="state-message success">{{ mensajeExito }}</p>
+        <p v-if="mensajeError" class="state-message error">{{ mensajeError }}</p>
 
         <div class="actions-row">
-          <button type="button" class="secondary-btn" @click="goBack" :disabled="isSaving">Cancelar</button>
-          <button type="submit" class="primary-btn" :disabled="isSaving">
-            {{ isSaving ? 'Guardando...' : 'Guardar cambios' }}
+          <button type="button" class="secondary-btn" @click="volverAtras" :disabled="guardandoCambios">Cancelar</button>
+          <button type="submit" class="primary-btn" :disabled="guardandoCambios">
+            {{ guardandoCambios ? 'Guardando...' : 'Guardar cambios' }}
           </button>
         </div>
       </form>
@@ -99,15 +99,15 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import NavbarLogin from '../navbar/NavbarLogin.vue'
 
-const isLoading = ref(true)
-const isSaving = ref(false)
-const isVerifyingPassword = ref(false)
-const isPasswordVerified = ref(false)
-const loadError = ref('')
-const submitError = ref('')
-const submitMessage = ref('')
+const estaCargando = ref(true)
+const guardandoCambios = ref(false)
+const estaVerificandoContrasena = ref(false)
+const contrasenaVerificada = ref(false)
+const errorCarga = ref('')
+const mensajeError = ref('')
+const mensajeExito = ref('')
 
-const form = reactive({
+const formulario = reactive({
   nom: '',
   cognoms: '',
   email: '',
@@ -117,131 +117,134 @@ const form = reactive({
 })
 
 watch(
-  () => form.currentPassword,
+  () => formulario.currentPassword,
   () => {
-    isPasswordVerified.value = false
-    form.newPassword = ''
-    form.confirmPassword = ''
+    // Al cambiar la contraseña actual, obligamos a verificarla otra vez.
+    contrasenaVerificada.value = false
+    formulario.newPassword = ''
+    formulario.confirmPassword = ''
   }
 )
 
-const loadProfile = async () => {
-  isLoading.value = true
-  loadError.value = ''
+const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
+  const mensajeApi = error.response?.data?.message
+  const erroresValidacion = error.response?.data?.errors
+  const primerErrorValidacion = erroresValidacion ? Object.values(erroresValidacion)[0]?.[0] : ''
+
+  return primerErrorValidacion || mensajeApi || mensajePorDefecto
+}
+
+const cargarPerfil = async () => {
+  estaCargando.value = true
+  errorCarga.value = ''
 
   try {
     const { data } = await window.axios.get('/api/user')
-    const user = data?.user
+    const usuario = data?.user
 
-    if (!user) {
+    if (!usuario) {
       throw new Error('No se pudo cargar el perfil.')
     }
 
-    form.nom = user.nom || ''
-    form.cognoms = user.cognoms || ''
-    form.email = user.correu || user.email || ''
+    formulario.nom = usuario.nom || ''
+    formulario.cognoms = usuario.cognoms || ''
+    formulario.email = usuario.correu || usuario.email || ''
   } catch {
-    loadError.value = 'No se pudo cargar tu perfil.'
+    errorCarga.value = 'No se pudo cargar tu perfil.'
   } finally {
-    isLoading.value = false
+    estaCargando.value = false
   }
 }
 
-const handleSubmit = async () => {
-  isSaving.value = true
-  submitError.value = ''
-  submitMessage.value = ''
+const guardarPerfil = async () => {
+  guardandoCambios.value = true
+  mensajeError.value = ''
+  mensajeExito.value = ''
 
-  if (form.newPassword || form.confirmPassword) {
-    if (!isPasswordVerified.value) {
-      submitError.value = 'Primero verifica tu contraseña actual.'
-      isSaving.value = false
+  if (formulario.newPassword || formulario.confirmPassword) {
+    if (!contrasenaVerificada.value) {
+      mensajeError.value = 'Primero verifica tu contraseña actual.'
+      guardandoCambios.value = false
       return
     }
 
-    if (form.newPassword !== form.confirmPassword) {
-      submitError.value = 'La nueva contraseña y su confirmación no coinciden.'
-      isSaving.value = false
+    if (formulario.newPassword !== formulario.confirmPassword) {
+      mensajeError.value = 'La nueva contraseña y su confirmación no coinciden.'
+      guardandoCambios.value = false
       return
     }
   }
 
   try {
     const { data } = await window.axios.put('/api/profile', {
-      nom: form.nom,
-      cognoms: form.cognoms,
-      email: form.email,
-      current_password: form.currentPassword || null,
-      new_password: form.newPassword || null,
-      new_password_confirmation: form.confirmPassword || null,
+      nom: formulario.nom,
+      cognoms: formulario.cognoms,
+      email: formulario.email,
+      current_password: formulario.currentPassword || null,
+      new_password: formulario.newPassword || null,
+      new_password_confirmation: formulario.confirmPassword || null,
     })
 
-    const updatedUser = data?.user
+    const usuarioActualizado = data?.user
 
-    if (updatedUser) {
-      localStorage.setItem('auth_user', JSON.stringify(updatedUser))
+    if (usuarioActualizado) {
+      localStorage.setItem('auth_user', JSON.stringify(usuarioActualizado))
     }
 
-    form.currentPassword = ''
-    form.newPassword = ''
-    form.confirmPassword = ''
-    isPasswordVerified.value = false
-    submitMessage.value = 'Perfil actualizado correctamente.'
+    formulario.currentPassword = ''
+    formulario.newPassword = ''
+    formulario.confirmPassword = ''
+    contrasenaVerificada.value = false
+    mensajeExito.value = 'Perfil actualizado correctamente.'
   } catch (error) {
     if (error.response?.status === 422) {
-      const apiMessage = error.response?.data?.message
-      const validationErrors = error.response?.data?.errors
-      const firstValidationError = validationErrors
-        ? Object.values(validationErrors)[0]?.[0]
-        : ''
-
-      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario.'
+      mensajeError.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
       return
     }
 
-    submitError.value = error.response?.data?.message || 'No se pudo actualizar el perfil.'
+    mensajeError.value = error.response?.data?.message || 'No se pudo actualizar el perfil.'
   } finally {
-    isSaving.value = false
+    guardandoCambios.value = false
   }
 }
 
-const verifyCurrentPassword = async () => {
-  submitError.value = ''
-  submitMessage.value = ''
+const verificarContrasenaActual = async () => {
+  mensajeError.value = ''
+  mensajeExito.value = ''
 
-  if (!form.currentPassword.trim()) {
-    submitError.value = 'Escribe primero tu contraseña actual.'
+  if (!formulario.currentPassword.trim()) {
+    mensajeError.value = 'Escribe primero tu contraseña actual.'
     return
   }
 
-  isVerifyingPassword.value = true
+  estaVerificandoContrasena.value = true
 
   try {
     await window.axios.post('/api/profile/verify-password', {
-      current_password: form.currentPassword,
+      current_password: formulario.currentPassword,
     })
 
-    isPasswordVerified.value = true
+    contrasenaVerificada.value = true
   } catch (error) {
-    isPasswordVerified.value = false
-    submitError.value = error.response?.data?.message || 'No se pudo verificar la contraseña actual.'
+    contrasenaVerificada.value = false
+    mensajeError.value = error.response?.data?.message || 'No se pudo verificar la contraseña actual.'
   } finally {
-    isVerifyingPassword.value = false
+    estaVerificandoContrasena.value = false
   }
 }
 
-const onCurrentPasswordInput = () => {
-  isPasswordVerified.value = false
-  form.newPassword = ''
-  form.confirmPassword = ''
+const alEscribirContrasenaActual = () => {
+  contrasenaVerificada.value = false
+  formulario.newPassword = ''
+  formulario.confirmPassword = ''
 }
 
-const goBack = () => {
+const volverAtras = () => {
   window.history.back()
 }
 
 onMounted(() => {
-  loadProfile()
+  cargarPerfil()
 })
 </script>
 

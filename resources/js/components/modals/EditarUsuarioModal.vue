@@ -6,21 +6,21 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
-      <form class="modal-form" @submit.prevent="handleSubmit">
+      <form class="modal-form" @submit.prevent="enviarFormulario">
         <label for="edit-nom">Nombre</label>
-        <input id="edit-nom" v-model="form.nom" type="text" required>
+        <input id="edit-nom" v-model="formulario.nom" type="text" required>
 
         <label for="edit-cognoms">Apellidos</label>
-        <input id="edit-cognoms" v-model="form.cognoms" type="text" required>
+        <input id="edit-cognoms" v-model="formulario.cognoms" type="text" required>
 
         <label for="edit-email">Correo electronico</label>
-        <input id="edit-email" v-model="form.email" type="email" required>
+        <input id="edit-email" v-model="formulario.email" type="email" required>
 
         <label for="edit-password">Contraseña (opcional)</label>
-        <input id="edit-password" v-model="form.password" type="password" placeholder="Dejar vacio para no cambiar">
+        <input id="edit-password" v-model="formulario.password" type="password" placeholder="Dejar vacio para no cambiar">
 
         <label for="edit-rol_id">Rol</label>
-        <select id="edit-rol_id" v-model="form.rol_id" required>
+        <select id="edit-rol_id" v-model="formulario.rol_id" required>
           <option value="1">Admin</option>
           <option value="2">Operador</option>
         </select>
@@ -43,7 +43,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const form = reactive({
+const formulario = reactive({
   nom: '',
   cognoms: '',
   email: '',
@@ -51,26 +51,27 @@ const form = reactive({
   rol_id: '2',
 })
 
-const hydrateForm = () => {
-  form.nom = props.user?.nom || ''
-  form.cognoms = props.user?.cognoms || ''
-  form.email = props.user?.email || ''
-  form.password = ''
-  form.rol_id = String(props.user?.rol_id ?? 2)
+const cargarFormulario = () => {
+  // Copiamos los datos recibidos para editar sin tocar el objeto original.
+  formulario.nom = props.user?.nom || ''
+  formulario.cognoms = props.user?.cognoms || ''
+  formulario.email = props.user?.email || ''
+  formulario.password = ''
+  formulario.rol_id = String(props.user?.rol_id ?? 2)
 }
 
 watch(
   () => props.user,
   () => {
-    hydrateForm()
+    cargarFormulario()
   },
   { immediate: true }
 )
 
-const handleSubmit = () => {
+const enviarFormulario = () => {
   emit('submit', {
-    ...form,
-    rol_id: Number(form.rol_id),
+    ...formulario,
+    rol_id: Number(formulario.rol_id),
   })
 }
 </script>

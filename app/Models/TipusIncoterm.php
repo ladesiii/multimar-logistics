@@ -12,4 +12,6 @@ class TipusIncoterm extends Model
     protected $table = 'tipus_incoterms';
 
     public $timestamps = false;
+
+    // Modelo catálogo: solo representa los incoterms disponibles.
 }

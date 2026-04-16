@@ -12,33 +12,36 @@ use Illuminate\Validation\Rule;
 
 class ClientesController extends Controller
 {
+    private function formatearCliente(Cliente $client): array // Función para no repetir código al formatear el cliente en index, store y update.
+    {
+        $usuari = $client->usuari;
+
+        return [
+            'id' => $client->id,
+            'usuari_id' => $client->usuari_id,
+            'nom' => $usuari?->nom,
+            'cognoms' => $usuari?->cognoms,
+            'nom_complet' => trim(($usuari?->nom ?? '') . ' ' . ($usuari?->cognoms ?? '')),
+            'email' => $usuari?->correu,
+            'nom_empresa' => $client->nom_empresa,
+            'cif_nif' => $client->cif_nif,
+            'telefon' => $client->telefon,
+        ];
+    }
+
     public function index(): JsonResponse
     {
         $clients = Cliente::with('usuari')
             ->orderBy('id')
             ->get()
-            ->map(function (Cliente $client) {
-                $usuari = $client->usuari;
-
-                return [
-                    'id' => $client->id,
-                    'usuari_id' => $client->usuari_id,
-                    'nom' => $usuari?->nom,
-                    'cognoms' => $usuari?->cognoms,
-                    'nom_complet' => trim(($usuari?->nom ?? '') . ' ' . ($usuari?->cognoms ?? '')),
-                    'email' => $usuari?->correu,
-                    'nom_empresa' => $client->nom_empresa,
-                    'cif_nif' => $client->cif_nif,
-                    'telefon' => $client->telefon,
-                ];
-            });
+            ->map(fn (Cliente $client) => $this->formatearCliente($client)); // map() transforma el array en uno nuevo con el formato que queremos.
 
         return response()->json([
             'clients' => $clients,
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request): JsonResponse // Crea un nuevo cliente junto con su usuario
     {
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:50'],
@@ -51,6 +54,7 @@ class ClientesController extends Controller
         ]);
 
         $client = DB::transaction(function () use ($validated) {
+            // La creación del cliente necesita también su usuario asociado.
             $usuari = Usuari::create([
                 'nom' => $validated['nom'],
                 'cognoms' => $validated['cognoms'],
@@ -71,21 +75,11 @@ class ClientesController extends Controller
 
         return response()->json([
             'message' => 'Cliente creado correctamente.',
-            'client' => [
-                'id' => $client->id,
-                'usuari_id' => $client->usuari_id,
-                'nom' => $client->usuari?->nom,
-                'cognoms' => $client->usuari?->cognoms,
-                'nom_complet' => trim(($client->usuari?->nom ?? '') . ' ' . ($client->usuari?->cognoms ?? '')),
-                'email' => $client->usuari?->correu,
-                'nom_empresa' => $client->nom_empresa,
-                'cif_nif' => $client->cif_nif,
-                'telefon' => $client->telefon,
-            ],
+            'client' => $this->formatearCliente($client),
         ], 201);
     }
 
-    public function update(Request $request, Cliente $client): JsonResponse
+    public function update(Request $request, Cliente $client): JsonResponse // Actualiza un cliente existente junto con su usuario
     {
         $client->load('usuari');
 
@@ -135,21 +129,11 @@ class ClientesController extends Controller
 
         return response()->json([
             'message' => 'Cliente actualizado correctamente.',
-            'client' => [
-                'id' => $client->id,
-                'usuari_id' => $client->usuari_id,
-                'nom' => $client->usuari?->nom,
-                'cognoms' => $client->usuari?->cognoms,
-                'nom_complet' => trim(($client->usuari?->nom ?? '') . ' ' . ($client->usuari?->cognoms ?? '')),
-                'email' => $client->usuari?->correu,
-                'nom_empresa' => $client->nom_empresa,
-                'cif_nif' => $client->cif_nif,
-                'telefon' => $client->telefon,
-            ],
+            'client' => $this->formatearCliente($client),
         ]);
     }
 
-    public function destroy(Cliente $client): JsonResponse
+    public function destroy(Cliente $client): JsonResponse // Elimina un cliente junto con su usuario asociado
     {
         DB::transaction(function () use ($client) {
             $usuariId = $client->usuari_id;

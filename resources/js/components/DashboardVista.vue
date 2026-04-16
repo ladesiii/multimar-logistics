@@ -5,9 +5,9 @@
       <p>Resumen de tu logistica.</p>
     </header>
 
-    <p v-if="errorMessage" class="state-message error">{{ errorMessage }}</p>
+    <p v-if="mensajeError" class="state-message error">{{ mensajeError }}</p>
 
-    <div v-if="!isLoading && !errorMessage" class="overview-cards">
+    <div v-if="!estaCargando && !mensajeError" class="overview-cards">
       <article class="overview-card total">
         <div class="card-top">
           <h2>Total de ofertas</h2>
@@ -16,7 +16,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 9h8M8 12h8M8 15h5" />
           </svg>
         </div>
-        <p class="overview-value">{{ stats.total }}</p>
+        <p class="overview-value">{{ estadisticas.total }}</p>
       </article>
 
       <article class="overview-card pending">
@@ -27,7 +27,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
           </svg>
         </div>
-        <p class="overview-value">{{ stats.pending }}</p>
+        <p class="overview-value">{{ estadisticas.pending }}</p>
       </article>
 
       <article class="overview-card accepted">
@@ -38,7 +38,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="m8 12 2.5 2.5L16 9" />
           </svg>
         </div>
-        <p class="overview-value">{{ stats.accepted }}</p>
+        <p class="overview-value">{{ estadisticas.accepted }}</p>
       </article>
 
       <article class="overview-card rejected">
@@ -49,7 +49,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="m9 9 6 6m0-6-6 6" />
           </svg>
         </div>
-        <p class="overview-value">{{ stats.rejected }}</p>
+        <p class="overview-value">{{ estadisticas.rejected }}</p>
       </article>
     </div>
 
@@ -63,36 +63,40 @@
 import { onMounted, reactive, ref } from 'vue'
 import ListadoTracking from './ListadoTracking.vue'
 
-const isLoading = ref(true)
-const errorMessage = ref('')
-const stats = reactive({
+const estaCargando = ref(true)
+const mensajeError = ref('')
+const estadisticas = reactive({
   total: 0,
   pending: 0,
   accepted: 0,
   rejected: 0,
 })
 
-const loadDashboardStats = async () => {
-  isLoading.value = true
-  errorMessage.value = ''
+const contarOfertasPorEstado = (ofertas, idEstado) => {
+  return ofertas.filter((oferta) => Number(oferta?.estat_oferta_id) === idEstado).length
+}
+
+const cargarEstadisticasDashboard = async () => {
+  estaCargando.value = true
+  mensajeError.value = ''
 
   try {
     const { data } = await window.axios.get('/api/offers')
-    const offers = Array.isArray(data?.offers) ? data.offers : []
+    const ofertas = Array.isArray(data?.offers) ? data.offers : []
 
-    stats.total = offers.length
-    stats.pending = offers.filter((offer) => Number(offer?.estat_oferta_id) === 1).length
-    stats.accepted = offers.filter((offer) => Number(offer?.estat_oferta_id) === 2).length
-    stats.rejected = offers.filter((offer) => Number(offer?.estat_oferta_id) === 3).length
+    estadisticas.total = ofertas.length
+    estadisticas.pending = contarOfertasPorEstado(ofertas, 1)
+    estadisticas.accepted = contarOfertasPorEstado(ofertas, 2)
+    estadisticas.rejected = contarOfertasPorEstado(ofertas, 3)
   } catch {
-    errorMessage.value = 'No se pudo cargar el resumen de ofertas.'
+    mensajeError.value = 'No se pudo cargar el resumen de ofertas.'
   } finally {
-    isLoading.value = false
+    estaCargando.value = false
   }
 }
 
 onMounted(() => {
-  loadDashboardStats()
+  cargarEstadisticasDashboard()
 })
 </script>
 

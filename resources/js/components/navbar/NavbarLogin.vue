@@ -1,4 +1,5 @@
 <template>
+  <!-- Cabecera sencilla que solo muestra el logotipo en las pantallas de acceso. -->
   <nav class="navbar">
     <img :src="logo" alt="Logo" width="200">
   </nav>

@@ -2,7 +2,7 @@
   <section class="table-panel">
     <header class="table-header">
       <h1>Clientes</h1>
-      <button type="button" class="add-entity-btn" @click="isModalOpen = true">
+      <button type="button" class="add-entity-btn" @click="modalNuevoAbierto = true">
         Añadir cliente
       </button>
     </header>
@@ -21,30 +21,30 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-if="isLoading">
+        <tr v-if="estaCargando">
           <td colspan="8">Cargando clientes...</td>
         </tr>
-        <tr v-else-if="errorMessage">
-          <td colspan="8">{{ errorMessage }}</td>
+        <tr v-else-if="mensajeError">
+          <td colspan="8">{{ mensajeError }}</td>
         </tr>
-        <tr v-else-if="clients.length === 0">
+        <tr v-else-if="clientes.length === 0">
           <td colspan="8">No hay clientes para mostrar.</td>
         </tr>
-        <tr v-else v-for="client in clients" :key="client.id">
-          <td>{{ client.id }}</td>
-          <td>{{ client.nom_complet }}</td>
-          <td>{{ client.email }}</td>
-          <td>{{ client.usuari_id }}</td>
-          <td>{{ client.nom_empresa }}</td>
-          <td>{{ client.cif_nif }}</td>
-          <td>{{ client.telefon || '-' }}</td>
+        <tr v-else v-for="cliente in clientes" :key="cliente.id">
+          <td>{{ cliente.id }}</td>
+          <td>{{ cliente.nom_complet }}</td>
+          <td>{{ cliente.email }}</td>
+          <td>{{ cliente.usuari_id }}</td>
+          <td>{{ cliente.nom_empresa }}</td>
+          <td>{{ cliente.cif_nif }}</td>
+          <td>{{ cliente.telefon || '-' }}</td>
           <td class="actions-cell">
-            <button type="button" class="icon-btn edit-btn" aria-label="Editar cliente" @click="openEditModal(client)">
+            <button type="button" class="icon-btn edit-btn" aria-label="Editar cliente" @click="abrirModalEditar(cliente)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 3.487a2.1 2.1 0 1 1 2.97 2.97L9.23 17.06 5 18l.939-4.23 10.923-10.283Z" />
               </svg>
             </button>
-            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar cliente" @click="openDeleteModal(client)">
+            <button type="button" class="icon-btn delete-btn" aria-label="Eliminar cliente" @click="abrirModalEliminar(cliente)">
               <svg viewBox="0 0 24 24" class="action-icon" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a1 1 0 0 0 1 .92h6a1 1 0 0 0 1-.92L17 7" />
               </svg>
@@ -55,26 +55,26 @@
     </table>
 
     <NuevoClienteModal
-      v-if="isModalOpen"
-      @close="isModalOpen = false"
-      @submit="handleCreateClient"
+      v-if="modalNuevoAbierto"
+      @close="modalNuevoAbierto = false"
+      @submit="crearCliente"
     />
 
     <EditarClienteModal
-      v-if="isEditModalOpen && selectedClient"
-      :client="selectedClient"
-      @close="isEditModalOpen = false"
-      @submit="handleEditClient"
+      v-if="modalEditarAbierto && clienteSeleccionado"
+      :client="clienteSeleccionado"
+      @close="modalEditarAbierto = false"
+      @submit="editarCliente"
     />
 
     <EliminarClienteModal
-      v-if="isDeleteModalOpen && clientToDelete"
-      :client="clientToDelete"
-      @close="closeDeleteModal"
-      @confirm="confirmDeleteClient"
+      v-if="modalEliminarAbierto && clienteAEliminar"
+      :client="clienteAEliminar"
+      @close="cerrarModalEliminar"
+      @confirm="confirmarEliminarCliente"
     />
 
-    <p v-if="submitError" class="submit-error">{{ submitError }}</p>
+    <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
 </template>
 
@@ -84,123 +84,119 @@ import NuevoClienteModal from './modals/NuevoClienteModal.vue'
 import EditarClienteModal from './modals/EditarClienteModal.vue'
 import EliminarClienteModal from './modals/EliminarClienteModal.vue'
 
-const clients = ref([])
-const isLoading = ref(true)
-const errorMessage = ref('')
-const isModalOpen = ref(false)
-const isEditModalOpen = ref(false)
-const isDeleteModalOpen = ref(false)
-const selectedClient = ref(null)
-const clientToDelete = ref(null)
-const submitError = ref('')
+const clientes = ref([])
+const estaCargando = ref(true)
+const mensajeError = ref('')
+const modalNuevoAbierto = ref(false)
+const modalEditarAbierto = ref(false)
+const modalEliminarAbierto = ref(false)
+const clienteSeleccionado = ref(null)
+const clienteAEliminar = ref(null)
+const errorEnvio = ref('')
 
-const loadClients = async () => {
-  isLoading.value = true
-  errorMessage.value = ''
+const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
+  const mensajeApi = error.response?.data?.message
+  const erroresValidacion = error.response?.data?.errors
+  const primerErrorValidacion = erroresValidacion ? Object.values(erroresValidacion)[0]?.[0] : ''
+
+  return primerErrorValidacion || mensajeApi || mensajePorDefecto
+}
+
+const cargarClientes = async () => {
+  estaCargando.value = true
+  mensajeError.value = ''
 
   try {
     const { data } = await window.axios.get('/api/clients')
-    clients.value = data.clients || []
+    clientes.value = data.clients || []
   } catch {
-    errorMessage.value = 'No se pudieron cargar los clientes.'
+    mensajeError.value = 'No se pudieron cargar los clientes.'
   } finally {
-    isLoading.value = false
+    estaCargando.value = false
   }
 }
 
 onMounted(() => {
-  loadClients()
+  cargarClientes()
 })
 
-const handleCreateClient = async (clientData) => {
-  submitError.value = ''
+const crearCliente = async (datosCliente) => {
+  errorEnvio.value = ''
 
   try {
-    await window.axios.post('/api/clients', clientData)
-    isModalOpen.value = false
-    await loadClients()
+    await window.axios.post('/api/clients', datosCliente)
+    modalNuevoAbierto.value = false
+    await cargarClientes()
   } catch (error) {
     if (error.response?.status === 422) {
-      const apiMessage = error.response?.data?.message
-      const validationErrors = error.response?.data?.errors
-      const firstValidationError = validationErrors
-        ? Object.values(validationErrors)[0]?.[0]
-        : ''
-
-      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario.'
+      errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
       return
     }
 
-    submitError.value = 'No se pudo crear el cliente.'
+    errorEnvio.value = 'No se pudo crear el cliente.'
   }
 }
 
-const openEditModal = (client) => {
-  submitError.value = ''
-  selectedClient.value = {
-    id: client.id,
-    nom: client.nom || '',
-    cognoms: client.cognoms || '',
-    email: client.email || '',
-    nom_empresa: client.nom_empresa || '',
-    cif_nif: client.cif_nif || '',
-    telefon: client.telefon || '',
+const abrirModalEditar = (cliente) => {
+  errorEnvio.value = ''
+  clienteSeleccionado.value = {
+    id: cliente.id,
+    nom: cliente.nom || '',
+    cognoms: cliente.cognoms || '',
+    email: cliente.email || '',
+    nom_empresa: cliente.nom_empresa || '',
+    cif_nif: cliente.cif_nif || '',
+    telefon: cliente.telefon || '',
   }
-  isEditModalOpen.value = true
+  modalEditarAbierto.value = true
 }
 
-const handleEditClient = async (clientData) => {
-  if (!selectedClient.value?.id) {
+const editarCliente = async (datosCliente) => {
+  if (!clienteSeleccionado.value?.id) {
     return
   }
 
-  submitError.value = ''
+  errorEnvio.value = ''
 
   try {
-    await window.axios.put(`/api/clients/${selectedClient.value.id}`, clientData)
-    isEditModalOpen.value = false
-    selectedClient.value = null
-    await loadClients()
+    await window.axios.put(`/api/clients/${clienteSeleccionado.value.id}`, datosCliente)
+    modalEditarAbierto.value = false
+    clienteSeleccionado.value = null
+    await cargarClientes()
   } catch (error) {
     if (error.response?.status === 422) {
-      const apiMessage = error.response?.data?.message
-      const validationErrors = error.response?.data?.errors
-      const firstValidationError = validationErrors
-        ? Object.values(validationErrors)[0]?.[0]
-        : ''
-
-      submitError.value = firstValidationError || apiMessage || 'Revisa los datos del formulario.'
+      errorEnvio.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
       return
     }
 
-    submitError.value = 'No se pudo actualizar el cliente.'
+    errorEnvio.value = 'No se pudo actualizar el cliente.'
   }
 }
 
-const openDeleteModal = (client) => {
-  submitError.value = ''
-  clientToDelete.value = client
-  isDeleteModalOpen.value = true
+const abrirModalEliminar = (cliente) => {
+  errorEnvio.value = ''
+  clienteAEliminar.value = cliente
+  modalEliminarAbierto.value = true
 }
 
-const closeDeleteModal = () => {
-  isDeleteModalOpen.value = false
-  clientToDelete.value = null
+const cerrarModalEliminar = () => {
+  modalEliminarAbierto.value = false
+  clienteAEliminar.value = null
 }
 
-const confirmDeleteClient = async () => {
-  if (!clientToDelete.value?.id) {
+const confirmarEliminarCliente = async () => {
+  if (!clienteAEliminar.value?.id) {
     return
   }
 
-  submitError.value = ''
+  errorEnvio.value = ''
 
   try {
-    await window.axios.delete(`/api/clients/${clientToDelete.value.id}`)
-    closeDeleteModal()
-    await loadClients()
+    await window.axios.delete(`/api/clients/${clienteAEliminar.value.id}`)
+    cerrarModalEliminar()
+    await cargarClientes()
   } catch {
-    submitError.value = 'No se pudo eliminar el cliente.'
+    errorEnvio.value = 'No se pudo eliminar el cliente.'
   }
 }
 </script>
