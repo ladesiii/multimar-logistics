@@ -1,6 +1,12 @@
+<!--
+Componente: OfertaDetalleModal
+Descripción: Muestra el detalle completo de una oferta y permite aceptar/rechazar según rol y estado.
+-->
 <template>
+  <!-- Se renderiza solo cuando el modal está abierto -->
   <div v-if="isOpen" class="offer-modal-backdrop" @click.self="close">
     <div class="offer-modal" role="dialog" aria-modal="true" aria-label="Detalle de oferta">
+      <!-- Cabecera con identificador, estado y botón de cierre -->
       <header class="offer-modal-header">
         <div class="offer-header-main">
           <h2>
@@ -18,10 +24,13 @@
         </div>
       </header>
 
+      <!-- Estados visuales durante la carga del detalle -->
       <p v-if="isLoading" class="modal-status">Cargando detalle de la oferta...</p>
       <p v-else-if="errorMessage" class="modal-status error">{{ errorMessage }}</p>
 
+      <!-- Contenido principal de la oferta -->
       <div v-else-if="offer" class="offer-content">
+        <!-- Resumen rápido en tarjetas -->
         <section class="offer-highlights" aria-label="Resumen de la oferta">
           <article class="highlight-card">
             <span class="highlight-label">Cliente</span>
@@ -41,6 +50,7 @@
           </article>
         </section>
 
+        <!-- Columnas con información detallada por secciones -->
         <div class="offer-columns">
         <div class="offer-column">
           <section class="offer-section-block">
@@ -161,6 +171,7 @@
             </dl>
           </section>
 
+          <!-- Panel de acciones/estado según rol y estado de la oferta -->
           <div class="offer-state-panel">
             <div v-if="isPendingOffer && canManageStatus" class="offer-action-buttons">
               <button
@@ -195,6 +206,7 @@
               <span>Esta oferta fue rechazada y queda cerrada para nuevas acciones.</span>
             </div>
 
+            <!-- Error de acción al aceptar/rechazar -->
             <p v-if="statusActionError" class="status-action-error">{{ statusActionError }}</p>
           </div>
         </div>
@@ -205,8 +217,10 @@
 </template>
 
 <script setup>
+// Importaciones de Vue.
 import { computed } from 'vue'
 
+// Props de control del modal, oferta y estados de operación.
 const props = defineProps({
   isOpen: Boolean,
   offer: Object,
@@ -221,19 +235,23 @@ const props = defineProps({
   },
 })
 
+// Eventos emitidos al padre.
 const emit = defineEmits(['close', 'accept', 'reject'])
 
+// Constantes de estado de oferta para mejorar legibilidad.
 const OFFER_STATUS = {
   pending: 1,
   accepted: 2,
   rejected: 3,
 }
 
+// Normaliza texto para comparaciones robustas con tildes/mayúsculas.
 const normalizeText = (value) => String(value || '')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
   .toLowerCase()
 
+// Computados que determinan campos visibles y acciones disponibles.
 const isMaritimeTransport = computed(() => normalizeText(props.offer?.tipus_transport).includes('maritim'))
 const isAirTransport = computed(() => {
   const transport = normalizeText(props.offer?.tipus_transport)
@@ -247,10 +265,12 @@ const isPendingOffer = computed(() => Number(props.offer?.estat_oferta_id) === O
 const isAcceptedOffer = computed(() => Number(props.offer?.estat_oferta_id) === OFFER_STATUS.accepted)
 const isRejectedOfferById = computed(() => Number(props.offer?.estat_oferta_id) === OFFER_STATUS.rejected)
 
+// Cierra el modal notificando al padre.
 const close = () => {
   emit('close')
 }
 
+// Traduce el id de estado a una etiqueta legible.
 const getOfferStatusLabel = (offer) => {
   const statusId = Number(offer?.estat_oferta_id)
 
@@ -269,6 +289,7 @@ const getOfferStatusLabel = (offer) => {
   return offer?.estat || '-'
 }
 
+// Devuelve clase CSS acorde al estado para pintar badges.
 const getOfferStatusClass = (offer) => {
   const statusId = Number(offer?.estat_oferta_id)
 

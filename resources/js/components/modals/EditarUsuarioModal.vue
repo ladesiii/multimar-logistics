@@ -1,4 +1,9 @@
+<!--
+Componente: EditarUsuarioModal
+Descripción: Modal para editar datos de un usuario, incluyendo rol y contraseña opcional.
+-->
 <template>
+  <!-- Overlay del modal; cierra al pulsar fuera -->
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -6,6 +11,7 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
+      <!-- Formulario de edición del usuario -->
       <form class="modal-form" @submit.prevent="enviarFormulario">
         <label for="edit-nom">Nombre</label>
         <input id="edit-nom" v-model="formulario.nom" type="text" required>
@@ -32,8 +38,10 @@
 </template>
 
 <script setup>
+// Importaciones de Vue.
 import { reactive, watch } from 'vue'
 
+// Usuario recibido desde la tabla para editar.
 const props = defineProps({
   user: {
     type: Object,
@@ -41,8 +49,10 @@ const props = defineProps({
   },
 })
 
+// Eventos: cerrar modal y enviar cambios.
 const emit = defineEmits(['close', 'submit'])
 
+// Estado local del formulario.
 const formulario = reactive({
   nom: '',
   cognoms: '',
@@ -51,6 +61,7 @@ const formulario = reactive({
   rol_id: '2',
 })
 
+// Carga datos del usuario seleccionado al modelo del formulario.
 const cargarFormulario = () => {
   // Copiamos los datos recibidos para editar sin tocar el objeto original.
   formulario.nom = props.user?.nom || ''
@@ -60,6 +71,7 @@ const cargarFormulario = () => {
   formulario.rol_id = String(props.user?.rol_id ?? 2)
 }
 
+// Reacciona cuando cambia el usuario recibido por props.
 watch(
   () => props.user,
   () => {
@@ -68,6 +80,7 @@ watch(
   { immediate: true }
 )
 
+// Emite los cambios al padre, convirtiendo rol a número.
 const enviarFormulario = () => {
   emit('submit', {
     ...formulario,

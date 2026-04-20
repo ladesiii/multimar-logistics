@@ -1,4 +1,9 @@
+<!--
+Componente: EditarPerfil
+Descripción: Pantalla para actualizar datos personales y contraseña del usuario autenticado.
+-->
 <template>
+  <!-- Barra superior reutilizada de la zona de autenticación -->
   <NavbarLogin />
   <div class="profile-page">
     <section class="profile-card">
@@ -9,9 +14,11 @@
         </div>
       </header>
 
+      <!-- Estados de carga y error inicial de perfil -->
       <p v-if="estaCargando" class="state-message">Cargando perfil...</p>
       <p v-else-if="errorCarga" class="state-message error">{{ errorCarga }}</p>
 
+      <!-- Formulario principal de edición de perfil -->
       <form v-else class="profile-form" @submit.prevent="guardarPerfil">
         <div class="two-columns">
           <section class="section-panel">
@@ -96,9 +103,11 @@
 </template>
 
 <script setup>
+// Importaciones de Vue y navbar superior.
 import { onMounted, reactive, ref, watch } from 'vue'
 import NavbarLogin from '../navbar/NavbarLogin.vue'
 
+// Estado de UI y mensajes.
 const estaCargando = ref(true)
 const guardandoCambios = ref(false)
 const estaVerificandoContrasena = ref(false)
@@ -107,6 +116,7 @@ const errorCarga = ref('')
 const mensajeError = ref('')
 const mensajeExito = ref('')
 
+// Modelo reactivo del formulario de perfil.
 const formulario = reactive({
   nom: '',
   cognoms: '',
@@ -116,6 +126,7 @@ const formulario = reactive({
   confirmPassword: '',
 })
 
+// Si cambia la contraseña actual, se obliga a verificarla de nuevo.
 watch(
   () => formulario.currentPassword,
   () => {
@@ -126,6 +137,7 @@ watch(
   }
 )
 
+// Obtiene mensaje amigable desde errores de validación del backend.
 const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   const mensajeApi = error.response?.data?.message
   const erroresValidacion = error.response?.data?.errors
@@ -134,6 +146,7 @@ const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   return primerErrorValidacion || mensajeApi || mensajePorDefecto
 }
 
+// Carga los datos actuales del usuario para rellenar el formulario.
 const cargarPerfil = () => {
   estaCargando.value = true
   errorCarga.value = ''
@@ -158,6 +171,7 @@ const cargarPerfil = () => {
     })
 }
 
+// Guarda datos del perfil y opcionalmente contraseña.
 const guardarPerfil = () => {
   guardandoCambios.value = true
   mensajeError.value = ''
@@ -211,6 +225,7 @@ const guardarPerfil = () => {
     })
 }
 
+// Verifica con backend que la contraseña actual es correcta.
 const verificarContrasenaActual = () => {
   mensajeError.value = ''
   mensajeExito.value = ''
@@ -237,17 +252,20 @@ const verificarContrasenaActual = () => {
     })
 }
 
+// Reinicia verificación cuando el usuario modifica la contraseña actual.
 const alEscribirContrasenaActual = () => {
   contrasenaVerificada.value = false
   formulario.newPassword = ''
   formulario.confirmPassword = ''
 }
 
+// Vuelve a la pantalla anterior.
 const volverAtras = () => {
   window.history.back()
 }
 
 onMounted(() => {
+  // Carga inicial del perfil.
   cargarPerfil()
 })
 </script>

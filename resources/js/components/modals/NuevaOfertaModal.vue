@@ -1,4 +1,9 @@
+<!--
+Componente: NuevaOfertaModal
+Descripción: Formulario avanzado para crear ofertas con campos condicionales según transporte, carga y estado.
+-->
 <template>
+  <!-- Overlay del modal -->
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -6,10 +11,13 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
+      <!-- Estados del formulario: carga de opciones o error -->
       <p v-if="isLoading" class="form-status">Cargando opciones del formulario...</p>
       <p v-else-if="errorMessage" class="form-status error">{{ errorMessage }}</p>
 
+      <!-- Formulario principal de creación -->
       <form v-else class="modal-form" @submit.prevent="enviarFormulario">
+        <!-- 1) Información base de la oferta -->
         <section class="form-section">
           <h3>1) Informacion principal</h3>
           <div class="fields-grid">
@@ -63,6 +71,7 @@
           </div>
         </section>
 
+        <!-- 2) Cliente asociado a la oferta -->
         <section class="form-section">
           <h3>2) Cliente</h3>
           <div class="fields-grid one-col">
@@ -76,6 +85,7 @@
           </div>
         </section>
 
+        <!-- 3) Bloque logístico con campos que aparecen por tipo de transporte/carga -->
         <section class="form-section">
           <h3>3) Logistica</h3>
           <div class="fields-grid">
@@ -137,6 +147,7 @@
           </div>
         </section>
 
+        <!-- 4) Datos económicos y fechas de validez -->
         <section class="form-section">
           <h3>4) Detalles de la oferta</h3>
           <div class="fields-grid">
@@ -177,6 +188,7 @@
           </div>
         </section>
 
+        <!-- Acciones finales del formulario -->
         <div class="actions-row">
           <button type="button" class="cancel-btn" @click="$emit('close')">Cancelar</button>
           <button type="submit" class="submit-btn">Crear oferta</button>
@@ -187,8 +199,10 @@
 </template>
 
 <script setup>
+// Importaciones de Vue para estado reactivo y lógica condicional.
 import { computed, reactive, watch } from 'vue'
 
+// Props: catálogo de opciones y estados de carga/error del formulario.
 const props = defineProps({
   options: {
     type: Object,
@@ -204,8 +218,10 @@ const props = defineProps({
   },
 })
 
+// Eventos emitidos al padre.
 const emit = defineEmits(['close', 'submit'])
 
+// Modelo del formulario de nueva oferta.
 const form = reactive({
   tipus_transport_id: '',
   tipus_fluxe_id: '',
@@ -230,6 +246,7 @@ const form = reactive({
   data_validessa_final: '',
 })
 
+// Normaliza textos para comparaciones robustas (sin tildes/mayúsculas).
 const normalizeText = (value) => String(value || '')
   .toLowerCase()
   .replace(/[àá]/g, 'a')
@@ -239,11 +256,13 @@ const normalizeText = (value) => String(value || '')
   .replace(/[ùúü]/g, 'u')
   .replace(/ñ/g, 'n')
 
+// Obtiene etiqueta visible de la opción seleccionada por id.
 const obtenerEtiquetaSeleccionada = (lista, id) => {
   const elementoSeleccionado = (lista || []).find((item) => String(item.id) === String(id))
   return elementoSeleccionado?.label || ''
 }
 
+// Computados para mostrar/ocultar campos condicionales del formulario.
 const isMaritimeTransport = computed(() => {
   const etiqueta = normalizeText(obtenerEtiquetaSeleccionada(props.options.tipus_transports, form.tipus_transport_id))
   return etiqueta.includes('maritim')
@@ -264,6 +283,7 @@ const isRejectedStatus = computed(() => {
   return rejectedId && Number(form.estat_oferta_id) === Number(rejectedId)
 })
 
+// Inicializa el estado de oferta por defecto (normalmente "Pendiente").
 watch(
   () => props.options,
   (options) => {
@@ -282,6 +302,7 @@ watch(
   { immediate: true }
 )
 
+// Si es marítimo, limpia aeropuertos (mutuamente excluyentes).
 watch(isMaritimeTransport, (active) => {
   if (active) {
     form.aeroport_origen_id = ''
@@ -289,6 +310,7 @@ watch(isMaritimeTransport, (active) => {
   }
 })
 
+// Si es aéreo, limpia puertos y línea marítima.
 watch(isAirTransport, (active) => {
   if (active) {
     form.linia_transport_maritim_id = ''
@@ -297,18 +319,21 @@ watch(isAirTransport, (active) => {
   }
 })
 
+// Si no hay contenedor, limpia ese campo para no enviar datos inconsistentes.
 watch(showContainerType, (active) => {
   if (!active) {
     form.tipus_contenidor_id = ''
   }
 })
 
+// Si no está en rechazado, elimina la razón de rechazo del payload.
 watch(isRejectedStatus, (active) => {
   if (!active) {
     form.rao_rebuig = ''
   }
 })
 
+// Convierte strings del formulario a número o null según corresponda.
 const convertirANumeroONulo = (value, permitirDecimales = false) => {
   if (value === '' || value === null || value === undefined) {
     return null
@@ -318,6 +343,7 @@ const convertirANumeroONulo = (value, permitirDecimales = false) => {
   return Number.isNaN(numeroParseado) ? null : numeroParseado
 }
 
+// Construye payload final y lo emite al padre para crear la oferta.
 const enviarFormulario = () => {
   const datosOferta = {
     tipus_transport_id: convertirANumeroONulo(form.tipus_transport_id),

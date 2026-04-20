@@ -1,4 +1,9 @@
+<!--
+Componente: EliminarClienteModal
+Descripción: Modal de confirmación para eliminar un cliente.
+-->
 <template>
+  <!-- Overlay del modal -->
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -6,10 +11,12 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
+      <!-- Mensaje de confirmación con nombre del cliente -->
       <p class="confirm-text">
         Seguro que quieres eliminar el cliente {{ client?.nom_complet }}?
       </p>
 
+      <!-- Acciones de cancelar y confirmar -->
       <div class="confirm-actions">
         <button type="button" class="cancel-btn" @click="$emit('close')">Cancelar</button>
         <button type="button" class="confirm-btn" @click="$emit('confirm')">Aceptar</button>
@@ -19,6 +26,7 @@
 </template>
 
 <script setup>
+// Cliente objetivo de la eliminación.
 defineProps({
   client: {
     type: Object,
@@ -26,6 +34,7 @@ defineProps({
   },
 })
 
+// Eventos para cerrar o confirmar la eliminación.
 defineEmits(['close', 'confirm'])
 </script>
 

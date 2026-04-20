@@ -1,4 +1,9 @@
+<!--
+Componente: Login
+Descripción: Pantalla de acceso que autentica al usuario contra la API y guarda token/datos de sesión.
+-->
 <template>
+  <!-- Layout general de la pantalla de login -->
   <div class="login-layout">
     <NavbarLogin />
 
@@ -6,6 +11,7 @@
       <div class="login-card">
         <img :src="logo" alt="Logo" class="logo">
 
+        <!-- Formulario de inicio de sesión -->
         <form class="login-form" @submit.prevent="iniciarSesion">
           <div class="input-group">
             <label for="email">Correo electrónico</label>
@@ -29,6 +35,7 @@
             >
           </div>
 
+          <!-- Mensaje de error de autenticación -->
           <p v-if="mensajeError" class="form-error">{{ mensajeError }}</p>
 
           <button type="submit" class="btn-submit" :disabled="estaCargando">
@@ -43,18 +50,22 @@
 </template>
 
 <script setup>
+// Importaciones de Vue y recursos visuales.
 import { reactive, ref } from 'vue'
 import NavbarLogin from '../navbar/NavbarLogin.vue'
 import logo from '../../../assets/multimar-logistics.png'
 
+// Estado del formulario de acceso.
 const formulario = reactive({
   email: '',
   password: '',
 })
 
+// Estado de carga y mensajes de error.
 const estaCargando = ref(false)
 const mensajeError = ref('')
 
+// Envía credenciales al backend, guarda sesión y redirige al dashboard.
 const iniciarSesion = () => {
   estaCargando.value = true
   mensajeError.value = ''

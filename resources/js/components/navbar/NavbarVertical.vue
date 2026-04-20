@@ -1,9 +1,15 @@
+<!--
+Componente: NavbarVertical
+Descripción: Menú lateral del dashboard. Renderiza las secciones permitidas y emite la sección seleccionada.
+-->
 <template>
+  <!-- Sidebar lateral con logo y navegación -->
   <aside class="sidebar-container">
     <div class="logo-section">
       <img :src="logoMultimar" alt="Multimar Logistics" class="logo-img" />
     </div>
 
+    <!-- Menú dinámico: cada item proviene del padre según rol -->
     <nav class="menu-nav">
       <a
         v-for="item in menuItems"
@@ -12,6 +18,7 @@
         @click.prevent="setActive(item.text)"
         :class="['menu-item', { 'active': activeItem === item.text }]"
       >
+        <!-- Icono y texto del item -->
         <div class="icon-wrapper">
           <component :is="item.icon" class="icon" />
         </div>
@@ -22,8 +29,10 @@
 </template>
 
 <script setup>
+// Importa el logo corporativo mostrado en la parte superior.
 import logoMultimar from '../../../assets/multimar-logistics.png'
 
+// Props recibidas desde Dashboard: lista de items y item activo.
 defineProps({
   menuItems: {
     type: Array,
@@ -35,6 +44,7 @@ defineProps({
   },
 })
 
+// Evento para notificar al padre que el usuario cambió de sección.
 const emit = defineEmits(['section-selected'])
 
 const setActive = (itemText) => {

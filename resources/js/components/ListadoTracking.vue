@@ -1,9 +1,16 @@
+<!--
+Componente: ListadoTracking
+Descripción: Tabla de seguimiento de ofertas en tracking con consulta a la API y acción de detalle.
+-->
 <template>
+  <!-- Contenedor principal del tracking -->
   <section class="table-panel">
+    <!-- Cabecera de sección -->
     <header class="table-header">
       <h1>Tracking</h1>
     </header>
 
+    <!-- Tabla de tracking con estados de carga, error y vacío -->
     <table class="data-table">
       <thead>
         <tr>
@@ -56,12 +63,15 @@
 </template>
 
 <script setup>
+// Importaciones de Vue.
 import { onMounted, ref } from 'vue'
 
+// Estado de datos y estado de carga/errores.
 const ofertasTracking = ref([])
 const estaCargando = ref(true)
 const mensajeError = ref('')
 
+// Consulta la API de tracking y actualiza el listado.
 const cargarTracking = () => {
   estaCargando.value = true
   mensajeError.value = ''
@@ -79,10 +89,12 @@ const cargarTracking = () => {
 }
 
 onMounted(() => {
+  // Carga inicial al montar la vista.
   cargarTracking()
 })
 
 const abrirDetalleTracking = (oferta) => {
+  // Punto de entrada para futura pantalla de detalle de tracking.
   // Todavia no existe una vista de detalle, asi que solo dejamos trazado el clic.
   console.info('Abrir detalle tracking', oferta?.id)
 }

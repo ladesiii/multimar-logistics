@@ -1,3 +1,7 @@
+<!--
+Componente: NavbarLogin
+Descripción: Barra minimal de la pantalla de login que solo muestra el logotipo corporativo.
+-->
 <template>
   <!-- Cabecera sencilla que solo muestra el logotipo en las pantallas de acceso. -->
   <nav class="navbar">
@@ -6,6 +10,7 @@
 </template>
 
 <script setup>
+// Importa la imagen del logo para usarla en la cabecera de login.
 import logo from '../../../assets/multimar-logistics.png'
 </script>
 

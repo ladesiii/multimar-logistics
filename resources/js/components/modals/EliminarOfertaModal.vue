@@ -1,4 +1,9 @@
+<!--
+Componente: EliminarOfertaModal
+Descripción: Modal de confirmación para eliminar una oferta por su identificador.
+-->
 <template>
+  <!-- Overlay del modal -->
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -6,10 +11,12 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
+      <!-- Mensaje de confirmación mostrando ID de oferta -->
       <p class="confirm-text">
         Seguro que quieres eliminar la oferta #{{ offer?.id }}?
       </p>
 
+      <!-- Botones de acción -->
       <div class="confirm-actions">
         <button type="button" class="cancel-btn" @click="$emit('close')">Cancelar</button>
         <button type="button" class="confirm-btn" @click="$emit('confirm')">Aceptar</button>
@@ -27,6 +34,7 @@ defineProps({
   },
 })
 
+// El padre decide qué hacer al cerrar o confirmar.
 defineEmits(['close', 'confirm'])
 </script>
 

@@ -1,4 +1,9 @@
+<!--
+Componente: EditarClienteModal
+Descripción: Modal con formulario para editar datos de un cliente existente.
+-->
 <template>
+  <!-- Overlay del modal; cierra al hacer clic fuera -->
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -6,6 +11,7 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
+      <!-- Formulario de edición -->
       <form class="modal-form" @submit.prevent="enviarFormulario">
         <label for="edit-nom">Nombre</label>
         <input id="edit-nom" v-model="formulario.nom" type="text" required>
@@ -35,8 +41,10 @@
 </template>
 
 <script setup>
+// Importaciones de Vue.
 import { reactive, watch } from 'vue'
 
+// Datos del cliente que se van a editar.
 const props = defineProps({
   client: {
     type: Object,
@@ -44,8 +52,10 @@ const props = defineProps({
   },
 })
 
+// Eventos hacia el padre (cerrar y guardar).
 const emit = defineEmits(['close', 'submit'])
 
+// Modelo local del formulario (copia editable del cliente).
 const formulario = reactive({
   nom: '',
   cognoms: '',
@@ -56,6 +66,7 @@ const formulario = reactive({
   telefon: '',
 })
 
+// Rellena el formulario con el cliente recibido por props.
 const cargarFormulario = () => {
   formulario.nom = props.client?.nom || ''
   formulario.cognoms = props.client?.cognoms || ''
@@ -66,6 +77,7 @@ const cargarFormulario = () => {
   formulario.telefon = props.client?.telefon || ''
 }
 
+// Sincroniza el formulario cuando cambia el cliente seleccionado.
 watch(
   () => props.client,
   () => {
@@ -74,6 +86,7 @@ watch(
   { immediate: true }
 )
 
+// Envía al padre los datos listos para guardar.
 const enviarFormulario = () => {
   emit('submit', { ...formulario })
 }

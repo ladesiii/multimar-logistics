@@ -1,12 +1,19 @@
+<!--
+Componente: NavbarHorizontal
+Descripción: Barra superior del área privada. Muestra usuario, ajustes y opción de cerrar sesión.
+-->
 <template>
+  <!-- Cabecera horizontal fija del panel -->
   <header class="navbar-horizontal">
     <div class="nav-right">
+      <!-- Botón de notificaciones (placeholder visual) -->
       <button class="nav-icon-btn">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="nav-icon">
           <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
         </svg>
       </button>
 
+      <!-- Botón que abre/cierra el menú desplegable de ajustes -->
       <button
         ref="botonAjustesRef"
         class="nav-icon-btn"
@@ -21,6 +28,7 @@
         </svg>
       </button>
 
+      <!-- Bloque de perfil, redirige a edición de perfil -->
       <div class="user-profile" role="button" tabindex="0" title="Editar perfil" @click="irAPerfil" @keydown.enter="irAPerfil" @keydown.space.prevent="irAPerfil">
         <div class="user-icon-wrapper">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="nav-icon">
@@ -31,6 +39,7 @@
       </div>
     </div>
 
+    <!-- Menú de ajustes mostrado condicionalmente -->
     <div
       v-if="ajustesAbiertos"
       ref="panelAjustesRef"
@@ -51,22 +60,27 @@
 </template>
 
 <script setup>
+// Importaciones de Vue.
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
+// Estado y referencias del dropdown de ajustes.
 const nombreUsuario = ref('Usuario')
 const ajustesAbiertos = ref(false)
 const idiomaSeleccionado = ref('es')
 const botonAjustesRef = ref(null)
 const panelAjustesRef = ref(null)
 
+// Alterna apertura/cierre del dropdown.
 const alternarAjustes = () => {
   ajustesAbiertos.value = !ajustesAbiertos.value
 }
 
+// Cierra el dropdown de ajustes.
 const cerrarAjustes = () => {
   ajustesAbiertos.value = false
 }
 
+// Detecta clics fuera del botón/panel para autocerrar el dropdown.
 const gestionarClickFuera = (event) => {
   if (!ajustesAbiertos.value) {
     return
@@ -80,12 +94,14 @@ const gestionarClickFuera = (event) => {
   }
 }
 
+// Cierra dropdown cuando se pulsa Escape.
 const gestionarTeclado = (event) => {
   if (event.key === 'Escape') {
     cerrarAjustes()
   }
 }
 
+// Cierra sesión en backend y limpia la sesión local.
 const cerrarSesion = () => {
   const tokenSesion = localStorage.getItem('auth_token')
 
@@ -109,12 +125,14 @@ const cerrarSesion = () => {
   window.location.href = '/'
 }
 
+// Redirige a la pantalla de edición de perfil.
 const irAPerfil = () => {
   // La pantalla de perfil se sirve como otra vista Blade.
   window.location.href = window.appRoutes?.profileEdit || '/editar-perfil'
 }
 
 onMounted(() => {
+  // Carga el usuario guardado en localStorage para mostrar su nombre.
   const usuarioGuardado = localStorage.getItem('auth_user')
 
   if (! usuarioGuardado) {
@@ -134,6 +152,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  // Limpia listeners globales cuando el componente se desmonta.
   document.removeEventListener('click', gestionarClickFuera)
   document.removeEventListener('keydown', gestionarTeclado)
 })

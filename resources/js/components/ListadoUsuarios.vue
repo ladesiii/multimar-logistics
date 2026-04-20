@@ -1,5 +1,11 @@
+<!--
+Componente: ListadoUsuarios
+Descripción: Muestra usuarios del sistema y gestiona altas, edición y eliminación mediante modales.
+-->
 <template>
+  <!-- Panel principal de la sección de usuarios -->
   <section class="table-panel">
+    <!-- Cabecera con acción para crear usuario -->
     <header class="table-header">
       <h1>Usuarios</h1>
       <button type="button" class="add-entity-btn" @click="modalNuevoAbierto = true">
@@ -7,6 +13,7 @@
       </button>
     </header>
 
+    <!-- Tabla con estados de carga, error, vacío y resultados -->
     <table class="data-table">
       <thead>
         <tr>
@@ -48,12 +55,14 @@
       </tbody>
     </table>
 
+    <!-- Modal de alta de usuario -->
     <NuevoUsuarioModal
       v-if="modalNuevoAbierto"
       @close="modalNuevoAbierto = false"
       @submit="crearUsuario"
     />
 
+    <!-- Modal de edición de usuario -->
     <EditarUsuarioModal
       v-if="modalEditarAbierto && usuarioSeleccionado"
       :user="usuarioSeleccionado"
@@ -61,6 +70,7 @@
       @submit="editarUsuario"
     />
 
+    <!-- Modal de confirmación de borrado -->
     <EliminarUsuarioModal
       v-if="modalEliminarAbierto && usuarioAEliminar"
       :user="usuarioAEliminar"
@@ -68,16 +78,19 @@
       @confirm="confirmarEliminarUsuario"
     />
 
+    <!-- Error de operaciones de envío -->
     <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
 </template>
 
 <script setup>
+// Importaciones de Vue y modales usados por esta pantalla.
 import { onMounted, ref } from 'vue'
 import NuevoUsuarioModal from './modals/NuevoUsuarioModal.vue'
 import EditarUsuarioModal from './modals/EditarUsuarioModal.vue'
 import EliminarUsuarioModal from './modals/EliminarUsuarioModal.vue'
 
+// Estado de la vista.
 const usuarios = ref([])
 const estaCargando = ref(true)
 const mensajeError = ref('')
@@ -88,6 +101,7 @@ const usuarioSeleccionado = ref(null)
 const usuarioAEliminar = ref(null)
 const errorEnvio = ref('')
 
+// Lee mensajes de validación devueltos por la API.
 const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   const mensajeApi = error.response?.data?.message
   const erroresValidacion = error.response?.data?.errors
@@ -96,6 +110,7 @@ const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   return primerErrorValidacion || mensajeApi || mensajePorDefecto
 }
 
+// Carga usuarios desde backend.
 const cargarUsuarios = () => {
   estaCargando.value = true
   mensajeError.value = ''
@@ -113,9 +128,11 @@ const cargarUsuarios = () => {
 }
 
 onMounted(() => {
+  // Carga inicial al entrar en la vista.
   cargarUsuarios()
 })
 
+// Crea un nuevo usuario.
 const crearUsuario = (datosUsuario) => {
   errorEnvio.value = ''
 
@@ -134,6 +151,7 @@ const crearUsuario = (datosUsuario) => {
     })
 }
 
+// Abre el modal de edición con una copia de datos.
 const abrirModalEditar = (usuario) => {
   errorEnvio.value = ''
   usuarioSeleccionado.value = {
@@ -146,6 +164,7 @@ const abrirModalEditar = (usuario) => {
   modalEditarAbierto.value = true
 }
 
+// Actualiza usuario existente.
 const editarUsuario = (datosUsuario) => {
   if (!usuarioSeleccionado.value?.id) {
     return
@@ -169,17 +188,20 @@ const editarUsuario = (datosUsuario) => {
     })
 }
 
+// Abre el modal de confirmación de borrado.
 const abrirModalEliminar = (usuario) => {
   errorEnvio.value = ''
   usuarioAEliminar.value = usuario
   modalEliminarAbierto.value = true
 }
 
+// Cierra y limpia selección de borrado.
 const cerrarModalEliminar = () => {
   modalEliminarAbierto.value = false
   usuarioAEliminar.value = null
 }
 
+// Elimina usuario seleccionado y refresca tabla.
 const confirmarEliminarUsuario = () => {
   if (!usuarioAEliminar.value?.id) {
     return

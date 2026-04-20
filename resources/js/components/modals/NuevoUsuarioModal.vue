@@ -1,4 +1,9 @@
+<!--
+Componente: NuevoUsuarioModal
+Descripción: Modal con formulario para crear usuarios internos (admin u operador).
+-->
 <template>
+  <!-- Overlay del modal -->
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -6,6 +11,7 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
+      <!-- Formulario de alta de usuario -->
       <form class="modal-form" @submit.prevent="enviarFormulario">
         <label for="nom">Nombre</label>
         <input id="nom" v-model="formulario.nom" type="text" required>
@@ -32,10 +38,13 @@
 </template>
 
 <script setup>
+// Importaciones de Vue.
 import { reactive } from 'vue'
 
+// Eventos del modal (cerrar/enviar).
 const emit = defineEmits(['close', 'submit'])
 
+// Modelo local del formulario.
 const formulario = reactive({
   nom: '',
   cognoms: '',
@@ -44,6 +53,7 @@ const formulario = reactive({
   rol_id: '2',
 })
 
+// Emite alta de usuario al padre, normalizando rol como número.
 const enviarFormulario = () => {
   // Convertimos el rol a número porque la API espera un entero.
   emit('submit', {

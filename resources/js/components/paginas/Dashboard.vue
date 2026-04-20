@@ -1,10 +1,17 @@
+<!--
+Componente: Dashboard
+Descripción: Contenedor principal autenticado. Resuelve sesión/rol, construye el menú lateral y renderiza la sección activa.
+-->
 <template>
+    <!-- Estado transitorio mientras se valida sesión y usuario -->
     <div v-if="comprobandoSesion" class="state-message">Cargando sesión...</div>
 
+    <!-- Estado mostrado cuando el usuario no tiene rol válido para el panel -->
     <div v-else-if="!estaAutorizado" class="state-message">
         No tienes permisos para acceder al panel.
     </div>
 
+    <!-- Layout completo del dashboard -->
     <div v-else class="main-layout">
         <NavbarVertical
             :menu-items="opcionesMenuDisponibles"
@@ -13,6 +20,7 @@
         />
         <div class="view-container">
             <NavbarHorizontal />
+            <!-- Render dinámico de la sección seleccionada en el menú -->
             <main class="page-content">
                 <component :is="componenteSeccionActual" />
             </main>
@@ -22,6 +30,7 @@
 </template>
 
 <script setup>
+// Importaciones de Vue, componentes de layout y vistas internas.
 import { computed, onMounted, ref } from 'vue'
 import NavbarVertical from '../navbar/NavbarVertical.vue'
 import NavbarHorizontal from '../navbar/NavbarHorizontal.vue'
@@ -38,10 +47,12 @@ import {
     TruckIcon,
 } from '@heroicons/vue/24/outline'
 
+// Estado de sesión y usuario autenticado.
 const comprobandoSesion = ref(true)
 const estaAutorizado = ref(true)
 const usuarioActual = ref(null)
 
+// Recupera de localStorage una versión cacheada del usuario.
 const cargarUsuarioDesdeStorage = () => {
     // Recuperamos el usuario cacheado para pintar el menú antes de consultar la API.
     const usuarioGuardado = localStorage.getItem('auth_user')
@@ -57,6 +68,7 @@ const cargarUsuarioDesdeStorage = () => {
     }
 }
 
+// Normaliza el rol del usuario para controlar secciones y permisos.
 const tipoRol = computed(() => {
     const idRol = Number(usuarioActual.value?.rol_id ?? 0)
     const nombreRol = String(usuarioActual.value?.rol || '').toLowerCase()
@@ -76,6 +88,7 @@ const tipoRol = computed(() => {
     return ''
 })
 
+// Opciones de menú por rol.
 const opcionesMenuAdmin = [
     { text: 'Usuarios', icon: UsersIcon },
     { text: 'Clientes', icon: ClipboardDocumentListIcon },
@@ -104,8 +117,10 @@ const menuPorRol = {
 
 const opcionesMenuDisponibles = computed(() => menuPorRol[tipoRol.value] || [])
 
+// Sección activa actualmente en la vista.
 const seccionSeleccionada = ref('Dashboard')
 
+// Traduce nombre de sección a componente Vue.
 const mapaComponentesSeccion = {
     Dashboard: DashboardVista,
     Usuarios: ListadoUsuarios,
@@ -114,8 +129,10 @@ const mapaComponentesSeccion = {
     Tracking: ListadoTracking,
 }
 
+// Conjunto de secciones permitidas según rol.
 const seccionesPermitidas = computed(() => opcionesMenuDisponibles.value.map((item) => item.text))
 
+// Componente actual a renderizar en el área principal.
 const componenteSeccionActual = computed(() => {
     const seccionPorDefecto = seccionesPermitidas.value[0] || 'Dashboard'
     const seccionObjetivo = seccionesPermitidas.value.includes(seccionSeleccionada.value)
@@ -125,6 +142,7 @@ const componenteSeccionActual = computed(() => {
     return mapaComponentesSeccion[seccionObjetivo] || DashboardVista
 })
 
+// Cambia de sección solo si está permitida para el rol actual.
 const gestionarSeleccionSeccion = (nombreSeccion) => {
     if (!seccionesPermitidas.value.includes(nombreSeccion)) {
         return
@@ -134,6 +152,7 @@ const gestionarSeleccionSeccion = (nombreSeccion) => {
 }
 
 onMounted(() => {
+    // Valida existencia de token antes de cargar el dashboard.
     const tokenSesion = localStorage.getItem('auth_token')
 
     if (!tokenSesion) {
@@ -141,9 +160,10 @@ onMounted(() => {
         return
     }
 
+    // Se intenta mostrar algo de UI rápido con el usuario cacheado.
     usuarioActual.value = cargarUsuarioDesdeStorage()
 
-    // La API confirma que el token sigue siendo válido y devuelve el usuario real.
+    // La API confirma si el token sigue siendo válido y devuelve el usuario real.
     window.axios.get('/api/user')
         .then(({ data }) => {
             const usuarioApi = data?.user ?? null
@@ -165,12 +185,14 @@ onMounted(() => {
             localStorage.setItem('auth_user', JSON.stringify(usuarioActual.value))
         })
         .catch(() => {
+            // Si falla la validación de sesión, limpiamos almacenamiento local.
             localStorage.removeItem('auth_token')
             localStorage.removeItem('auth_user')
             delete window.axios.defaults.headers.common.Authorization
             window.location.href = '/'
         })
         .finally(() => {
+            // Si no hay usuario/rol válido se desactiva el panel para evitar inconsistencias.
             if (!usuarioActual.value) {
                 return
             }
