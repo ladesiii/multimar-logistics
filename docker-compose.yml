@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: multimar-logistics
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: "Multimar Logistics"
+      APP_ENV: production
+      APP_KEY: base64:4aoH/6mzTlbjZXuiGWDuoqoPx6LlqsMOGYEgXZH5fo8=
+      APP_DEBUG: "false"
+      APP_URL: http://51.83.192.177
+      DB_CONNECTION: sqlsrv
+      DB_HOST: host.docker.internal
+      DB_PORT: 1433
+      DB_DATABASE: simex07
+      DB_USERNAME: simex07
+      DB_PASSWORD: "Politecnics_2026"
+      DB_TRUST_SERVER_CERTIFICATE: "true"
+      DB_ENCRYPT: "no"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
