@@ -12,6 +12,7 @@ use Illuminate\Validation\Rule;
 
 class OfertesController extends Controller
 {
+    // Devuelve todos los catalogos necesarios para pintar los selects del formulario de oferta.
     public function opcionesFormulario(): JsonResponse
     {
         $estados = $this->obtenerOpciones('estats_ofertes', ['estat', 'nom', 'tipus']);
@@ -36,6 +37,7 @@ class OfertesController extends Controller
         ]);
     }
 
+    // Lista ofertas segun rol: admin ve todo, operador solo las suyas, cliente solo las de su empresa.
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -49,6 +51,7 @@ class OfertesController extends Controller
         ])
             ->orderByDesc('id');
 
+        // Filtros de visibilidad por rol.
         if ($this->esUsuarioOperador($user)) {
             $consultaOfertas->where('operador_id', $user?->id);
         } elseif ($this->esUsuarioCliente($user)) {
@@ -72,6 +75,7 @@ class OfertesController extends Controller
         ]);
     }
 
+    // Crea una nueva oferta aplicando reglas y valores por defecto de estado/operador segun rol.
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -83,6 +87,7 @@ class OfertesController extends Controller
             ], 422);
         }
 
+        // Si no es admin, se fuerza el operador al usuario autenticado.
         if (! $this->esUsuarioAdmin($user) && $user) {
             $request->merge([
                 'operador_id' => $user->id,
@@ -94,8 +99,10 @@ class OfertesController extends Controller
             ]);
         }
 
+        // Se valida todo el payload con reglas centralizadas.
         $validated = $request->validate($this->reglas());
 
+        // Se asignan campos de forma explicita para controlar bien que entra en la oferta.
         $offer = new Oferta();
         $offer->tipus_transport_id = $validated['tipus_transport_id'];
         $offer->tipus_fluxe_id = $validated['tipus_fluxe_id'];
@@ -130,6 +137,7 @@ class OfertesController extends Controller
         ], 201);
     }
 
+    // Actualiza una oferta existente respetando permisos y rol del usuario autenticado.
     public function update(Request $request, $id): JsonResponse
     {
         $offer = Oferta::find($id);
@@ -146,12 +154,14 @@ class OfertesController extends Controller
 
         $user = $request->user();
 
+        // Operador no admin: se evita que pueda reasignar oferta a otro operador.
         if (! $this->esUsuarioAdmin($user) && $user) {
             $request->merge([
                 'operador_id' => $user->id,
             ]);
         }
 
+        // Reutilizamos las mismas reglas de validacion para mantener consistencia.
         $validated = $request->validate($this->reglas($offer));
 
         $offer->tipus_transport_id = $validated['tipus_transport_id'];
@@ -187,6 +197,7 @@ class OfertesController extends Controller
         ]);
     }
 
+    // Devuelve el detalle completo de una oferta concreta.
     public function show(Request $request, $id): JsonResponse
     {
         $offer = Oferta::find($id);
@@ -206,6 +217,7 @@ class OfertesController extends Controller
         ]);
     }
 
+    // Cambia el estado de una oferta (aceptar/rechazar) con validaciones de negocio.
     public function actualizarEstado(Request $request, $id): JsonResponse
     {
         $offer = Oferta::find($id);
@@ -226,11 +238,13 @@ class OfertesController extends Controller
             ], 403);
         }
 
+        // Solo se permiten los estados esperados por la logica de negocio: 2 (aceptada) o 3 (rechazada).
         $validated = $request->validate([
             'estat_oferta_id' => ['required', 'integer', Rule::in([2, 3])],
             'rao_rebuig' => ['nullable', 'string', 'max:255', 'required_if:estat_oferta_id,3'],
         ]);
 
+        // Solo se permite transicionar desde estado pendiente (id=1).
         if ((int) $offer->estat_oferta_id !== 1) {
             return response()->json([
                 'message' => 'Esta oferta ya fue gestionada y no puede cambiar de estado.',
@@ -240,6 +254,7 @@ class OfertesController extends Controller
         $offer->estat_oferta_id = (int) $validated['estat_oferta_id'];
         $existeColumnaPasoTracking = $this->soportaColumnaPasoTracking();
 
+        // Rechazo: guarda motivo y limpia paso de tracking si existe la columna.
         if ((int) $validated['estat_oferta_id'] === 3) {
             $offer->rao_rebuig = trim((string) ($validated['rao_rebuig'] ?? ''));
 
@@ -248,6 +263,7 @@ class OfertesController extends Controller
             }
         }
 
+        // Aceptacion: borra motivo de rechazo y arranca tracking en su primer paso.
         if ((int) $validated['estat_oferta_id'] === 2) {
             $offer->rao_rebuig = null;
 
@@ -266,6 +282,7 @@ class OfertesController extends Controller
         ]);
     }
 
+    // Elimina una oferta si existe y el usuario tiene permiso para esa oferta.
     public function destroy(Request $request, $id): JsonResponse
     {
         $offer = Oferta::find($id);
@@ -287,6 +304,7 @@ class OfertesController extends Controller
         ]);
     }
 
+    // Devuelve una vista simplificada de tracking para ofertas aceptadas.
     public function listarTracking(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -310,10 +328,12 @@ class OfertesController extends Controller
 
         $tieneColumnaPasoTracking = $this->soportaColumnaPasoTracking();
 
+        // Compatibilidad: solo se hace join de pasos si la columna existe en este entorno.
         if ($tieneColumnaPasoTracking) {
             $query->leftJoin('tracking_steps as ts', 'o.tracking_step_id', '=', 'ts.id');
         }
 
+        // Restriccion de resultados por rol autenticado.
         if ($this->esUsuarioOperador($user)) {
             $query->where('o.operador_id', $user->id);
         } elseif ($this->esUsuarioCliente($user)) {
@@ -350,6 +370,7 @@ class OfertesController extends Controller
 
         $trackingState = $this->resolverNombrePasoTrackingInicial();
 
+        // Se transforma cada fila SQL al formato final que consume el frontend.
         $tracking = $rows->map(function ($row) use ($trackingState) {
             $incotermCode = trim((string) ($row->incoterm_codi ?? ''));
             $incotermName = trim((string) ($row->incoterm_nom ?? ''));
@@ -372,6 +393,7 @@ class OfertesController extends Controller
         ]);
     }
 
+    // Reglas de validacion compartidas entre crear y actualizar oferta.
     private function reglas(?Oferta $offer = null): array
     {
         return [
@@ -402,6 +424,7 @@ class OfertesController extends Controller
         ];
     }
 
+    // Serializa una oferta para listados (payload corto).
     private function serializarOferta(Oferta $offer): array
     {
         $incotermCode = trim((string) ($offer->tipusIncoterm?->codi ?? ''));
@@ -476,6 +499,7 @@ class OfertesController extends Controller
             ])
             ->first();
 
+        // Si la consulta no encuentra la oferta, devolvemos estructura vacia.
         if (! $offer) {
             return [];
         }
@@ -530,6 +554,7 @@ class OfertesController extends Controller
         ];
     }
 
+    // Evalua si el usuario autenticado puede ver/editar/eliminar una oferta concreta.
     private function puedeAccederOferta(Request $request, Oferta $offer): bool
     {
         $user = $request->user();
@@ -538,14 +563,17 @@ class OfertesController extends Controller
             return false;
         }
 
+        // Admin: acceso total.
         if ($this->esUsuarioAdmin($user)) {
             return true;
         }
 
+        // Operador: solo ofertas asignadas a su propio usuario.
         if ($this->esUsuarioOperador($user)) {
             return (int) $offer->operador_id === (int) $user->id;
         }
 
+        // Cliente: solo ofertas del cliente asociado a su usuario.
         if ($this->esUsuarioCliente($user)) {
             $clientId = $this->obtenerIdClientePorUsuario($user);
 
@@ -559,6 +587,7 @@ class OfertesController extends Controller
         return false;
     }
 
+    // Solo cliente y admin pueden aceptar/rechazar una oferta.
     private function puedeGestionarEstadoOferta(Request $request): bool
     {
         $user = $request->user();
@@ -566,6 +595,7 @@ class OfertesController extends Controller
         return $this->esUsuarioCliente($user) || $this->esUsuarioAdmin($user);
     }
 
+    // Heuristica de deteccion de admin por id, rol_id o nombre de rol.
     private function esUsuarioAdmin($user): bool
     {
         if (! $user) {
@@ -579,6 +609,7 @@ class OfertesController extends Controller
             || str_contains($roleName, 'admin');
     }
 
+    // Heuristica de deteccion de operador por rol_id o nombre de rol.
     private function esUsuarioOperador($user): bool
     {
         if (! $user) {
@@ -592,6 +623,7 @@ class OfertesController extends Controller
             || str_contains($roleName, 'operator');
     }
 
+    // Heuristica de deteccion de cliente por rol_id o nombre de rol.
     private function esUsuarioCliente($user): bool
     {
         if (! $user) {
@@ -627,6 +659,7 @@ class OfertesController extends Controller
                 $id = (int) ($data['id'] ?? 0);
                 $parts = [];
 
+                // Construye la etiqueta con el orden de columnas preferido.
                 foreach ($labelColumns as $column) {
                     $value = trim((string) ($data[$column] ?? ''));
 
@@ -635,6 +668,7 @@ class OfertesController extends Controller
                     }
                 }
 
+                // Fallback: si no hay columnas preferidas con texto, toma el primer campo util.
                 if ($parts === []) {
                     foreach ($data as $column => $value) {
                         if ($column === 'id') {
@@ -752,6 +786,7 @@ class OfertesController extends Controller
             }
         }
 
+        // Fallback defensivo: si no detecta "pendiente", usa el primer estado disponible.
         return isset($rows[0]?->id) ? (int) $rows[0]->id : null;
     }
 
