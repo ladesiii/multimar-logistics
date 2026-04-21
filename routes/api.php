@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClientesController;
+use App\Http\Controllers\EstadoOfertaController;
 use App\Http\Controllers\OfertesController;
+use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\UsuarisController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -41,7 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,operador,cliente')->group(function () {
         Route::get('/offers', [OfertesController::class, 'index']); // Lista ofertas visibles según rol.
         Route::get('/offers/{offer}', [OfertesController::class, 'show'])->whereNumber('offer'); // Muestra el detalle de una oferta.
-        Route::get('/tracking', [OfertesController::class, 'listarTracking']); // Lista ofertas aceptadas en tracking.
+        Route::get('/tracking', [TrackingController::class, 'listarTracking']); // Lista ofertas aceptadas en tracking.
     });
 
     // Administrador y operador pueden crear y modificar ofertas.
@@ -54,7 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Cliente y administrador pueden aceptar o rechazar la oferta.
     Route::middleware('role:admin,cliente')->group(function () {
-        Route::patch('/offers/{offer}/status', [OfertesController::class, 'actualizarEstado'])->whereNumber('offer'); // Acepta o rechaza una oferta.
+        Route::patch('/offers/{offer}/status', [EstadoOfertaController::class, 'actualizarEstado'])->whereNumber('offer'); // Acepta o rechaza una oferta.
     });
 
     Route::post('/logout', [AuthController::class, 'cerrarSesion']); // Cierra sesión y revoca el token actual.

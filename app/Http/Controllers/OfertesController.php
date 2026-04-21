@@ -1,38 +1,48 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\Aeroport;
+use App\Models\Cliente;
+use App\Models\EstatOferta;
+use App\Models\LiniaTransportMaritim;
 use App\Models\Oferta;
-use App\Models\TrackingStep;
+use App\Models\Port;
+use App\Models\TipusCarrega;
+use App\Models\TipusContenidor;
+use App\Models\TipusFluxe;
+use App\Models\TipusIncoterm;
+use App\Models\TipusTransport;
+use App\Models\TipusValidacio;
+use App\Models\Transportista;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class OfertesController extends Controller
 {
     // Devuelve todos los catalogos necesarios para pintar los selects del formulario de oferta.
     public function opcionesFormulario(): JsonResponse
     {
-        $estados = $this->obtenerOpciones('estats_ofertes', ['estat', 'nom', 'tipus']);
+        $estados = $this->obtenerOpciones(EstatOferta::class, ['estat', 'nom', 'tipus']);
 
         return response()->json([
-            'tipus_transports' => $this->obtenerOpciones('tipus_transports', ['tipus', 'nom', 'codi']),
-            'tipus_fluxes' => $this->obtenerOpciones('tipus_fluxes', ['tipus', 'nom', 'codi']),
-            'tipus_carrega' => $this->obtenerOpciones('tipus_carrega', ['tipus', 'nom', 'codi']),
-            'tipus_incoterms' => $this->obtenerOpciones('tipus_incoterms', ['codi', 'nom']),
-            'tipus_validacions' => $this->obtenerOpciones('tipus_validacions', ['tipus', 'nom', 'codi']),
+            'tipus_transports' => $this->obtenerOpciones(TipusTransport::class, ['tipus', 'nom', 'codi']),
+            'tipus_fluxes' => $this->obtenerOpciones(TipusFluxe::class, ['tipus', 'nom', 'codi']),
+            'tipus_carrega' => $this->obtenerOpciones(TipusCarrega::class, ['tipus', 'nom', 'codi']),
+            'tipus_incoterms' => $this->obtenerOpciones(TipusIncoterm::class, ['codi', 'nom']),
+            'tipus_validacions' => $this->obtenerOpciones(TipusValidacio::class, ['tipus', 'nom', 'codi']),
             'estats_ofertes' => $estados,
-            'clients' => $this->obtenerOpciones('clients', ['nom_empresa', 'cif_nif']),
-            'transportistes' => $this->obtenerOpciones('transportistes', ['nom']),
-            'linies_transport_maritim' => $this->obtenerOpciones('linies_transport_maritim', ['nom']),
-            'ports' => $this->obtenerOpciones('ports', ['nom', 'codi']),
-            'aeroports' => $this->obtenerOpciones('aeroports', ['codi', 'nom']),
-            'tipus_contenidors' => $this->obtenerOpciones('tipus_contenidors', ['tipus', 'nom', 'codi']),
+            'clients' => $this->obtenerOpciones(Cliente::class, ['nom_empresa', 'cif_nif']),
+            'transportistes' => $this->obtenerOpciones(Transportista::class, ['nom']),
+            'linies_transport_maritim' => $this->obtenerOpciones(LiniaTransportMaritim::class, ['nom']),
+            'ports' => $this->obtenerOpciones(Port::class, ['nom', 'codi']),
+            'aeroports' => $this->obtenerOpciones(Aeroport::class, ['codi', 'nom']),
+            'tipus_contenidors' => $this->obtenerOpciones(TipusContenidor::class, ['tipus', 'nom', 'codi']),
             'status_defaults' => [
-                'pending_id' => $this->buscarIdEstadoPorPalabras($estados, ['pend']),
-                'rejected_id' => $this->buscarIdEstadoPorPalabras($estados, ['rebutj', 'rechaz']),
+                'pending_id' => 1,
+                'rejected_id' => 3,
             ],
         ]);
     }
@@ -42,13 +52,7 @@ class OfertesController extends Controller
     {
         $user = $request->user();
 
-        $consultaOfertas = Oferta::with([
-            'client:id,nom_empresa',
-            'operador:id,nom,cognoms',
-            'estatOferta:id,estat',
-            'tipusTransport:id,tipus',
-            'tipusIncoterm:id,codi,nom',
-        ])
+        $consultaOfertas = Oferta::with($this->relacionesOferta())
             ->orderByDesc('id');
 
         // Filtros de visibilidad por rol.
@@ -78,206 +82,98 @@ class OfertesController extends Controller
     // Crea una nueva oferta aplicando reglas y valores por defecto de estado/operador segun rol.
     public function store(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $idEstadoPendiente = $this->resolverIdEstadoPendiente();
+        try {
+            $user = $request->user();
 
-        if (! $idEstadoPendiente) {
+            // Si no es admin, se fuerza el operador al usuario autenticado.
+            if (! $this->esUsuarioAdmin($user) && $user) {
+                $request->merge([
+                    'operador_id' => $user->id,
+                    'estat_oferta_id' => 1,
+                ]);
+            } else {
+                $request->merge([
+                    'estat_oferta_id' => 1,
+                ]);
+            }
+
+            // Se valida todo el payload con reglas centralizadas.
+            $validated = $request->validate($this->reglas());
+
+            // Se asignan campos de forma explicita para controlar bien que entra en la oferta.
+            $offer = new Oferta();
+            $this->asignarCamposOferta($offer, $validated);
+            $offer->save();
+            $offer->load($this->relacionesOferta());
+
             return response()->json([
-                'message' => 'No se pudo determinar el estado Pendiente para crear la oferta.',
+                'message' => 'Oferta creada correctamente.',
+                'offer' => $this->serializarOferta($offer),
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Datos de validación incorrectos.',
+                'errors' => $e->errors(),
             ], 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Error interno al crear la oferta.',
+            ], 500);
         }
-
-        // Si no es admin, se fuerza el operador al usuario autenticado.
-        if (! $this->esUsuarioAdmin($user) && $user) {
-            $request->merge([
-                'operador_id' => $user->id,
-                'estat_oferta_id' => $idEstadoPendiente,
-            ]);
-        } else {
-            $request->merge([
-                'estat_oferta_id' => $idEstadoPendiente,
-            ]);
-        }
-
-        // Se valida todo el payload con reglas centralizadas.
-        $validated = $request->validate($this->reglas());
-
-        // Se asignan campos de forma explicita para controlar bien que entra en la oferta.
-        $offer = new Oferta();
-        $offer->tipus_transport_id = $validated['tipus_transport_id'];
-        $offer->tipus_fluxe_id = $validated['tipus_fluxe_id'];
-        $offer->tipus_carrega_id = $validated['tipus_carrega_id'];
-        $offer->tipus_incoterm_id = $validated['tipus_incoterm_id'];
-        $offer->client_id = $validated['client_id'];
-        $offer->agent_comercial_id = $validated['agent_comercial_id'] ?? null;
-        $offer->operador_id = $validated['operador_id'];
-        $offer->estat_oferta_id = $validated['estat_oferta_id'];
-        $offer->tipus_validacio_id = $validated['tipus_validacio_id'];
-        $offer->transportista_id = $validated['transportista_id'] ?? null;
-        $offer->linia_transport_maritim_id = $validated['linia_transport_maritim_id'] ?? null;
-        $offer->port_origen_id = $validated['port_origen_id'] ?? null;
-        $offer->port_desti_id = $validated['port_desti_id'] ?? null;
-        $offer->aeroport_origen_id = $validated['aeroport_origen_id'] ?? null;
-        $offer->aeroport_desti_id = $validated['aeroport_desti_id'] ?? null;
-        $offer->tipus_contenidor_id = $validated['tipus_contenidor_id'] ?? null;
-        $offer->pes_brut = $validated['pes_brut'] ?? null;
-        $offer->volum = $validated['volum'] ?? null;
-        $offer->comentaris = $validated['comentaris'] ?? null;
-        $offer->rao_rebuig = $validated['rao_rebuig'] ?? null;
-        $offer->data_creacio = $validated['data_creacio'];
-        $offer->data_validessa_inicial = $validated['data_validessa_inicial'] ?? null;
-        $offer->data_validessa_final = $validated['data_validessa_final'] ?? null;
-        $offer->preu = $validated['preu'] ?? null;
-        $offer->save();
-        $offer->load(['client:id,nom_empresa', 'operador:id,nom,cognoms', 'estatOferta:id,estat', 'tipusTransport:id,tipus', 'tipusIncoterm:id,codi,nom']);
-
-        return response()->json([
-            'message' => 'Oferta creada correctamente.',
-            'offer' => $this->serializarOferta($offer),
-        ], 201);
     }
 
     // Actualiza una oferta existente respetando permisos y rol del usuario autenticado.
     public function update(Request $request, $id): JsonResponse
     {
-        $offer = Oferta::find($id);
+        $offer = $this->resolverOfertaConAcceso($request, $id, 'No tienes permisos para gestionar esta oferta.');
 
-        if (! $offer) {
-            return response()->json(['message' => 'Oferta no encontrada.'], 404);
+        if ($offer instanceof JsonResponse) {
+            return $offer;
         }
 
-        if (! $this->puedeAccederOferta($request, $offer)) {
+        try {
+            $user = $request->user();
+
+            // Operador no admin: se evita que pueda reasignar oferta a otro operador.
+            if (! $this->esUsuarioAdmin($user) && $user) {
+                $request->merge([
+                    'operador_id' => $user->id,
+                ]);
+            }
+
+            // Reutilizamos las mismas reglas de validacion para mantener consistencia.
+            $validated = $request->validate($this->reglas());
+
+            $this->asignarCamposOferta($offer, $validated);
+            $offer->save();
+            $offer->load($this->relacionesOferta());
+
             return response()->json([
-                'message' => 'No tienes permisos para gestionar esta oferta.',
-            ], 403);
-        }
-
-        $user = $request->user();
-
-        // Operador no admin: se evita que pueda reasignar oferta a otro operador.
-        if (! $this->esUsuarioAdmin($user) && $user) {
-            $request->merge([
-                'operador_id' => $user->id,
+                'message' => 'Oferta actualizada correctamente.',
+                'offer' => $this->serializarOferta($offer),
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Datos de validación incorrectos.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Error interno al actualizar la oferta.',
+            ], 500);
         }
-
-        // Reutilizamos las mismas reglas de validacion para mantener consistencia.
-        $validated = $request->validate($this->reglas($offer));
-
-        $offer->tipus_transport_id = $validated['tipus_transport_id'];
-        $offer->tipus_fluxe_id = $validated['tipus_fluxe_id'];
-        $offer->tipus_carrega_id = $validated['tipus_carrega_id'];
-        $offer->tipus_incoterm_id = $validated['tipus_incoterm_id'];
-        $offer->client_id = $validated['client_id'];
-        $offer->agent_comercial_id = $validated['agent_comercial_id'] ?? null;
-        $offer->operador_id = $validated['operador_id'];
-        $offer->estat_oferta_id = $validated['estat_oferta_id'];
-        $offer->tipus_validacio_id = $validated['tipus_validacio_id'];
-        $offer->transportista_id = $validated['transportista_id'] ?? null;
-        $offer->linia_transport_maritim_id = $validated['linia_transport_maritim_id'] ?? null;
-        $offer->port_origen_id = $validated['port_origen_id'] ?? null;
-        $offer->port_desti_id = $validated['port_desti_id'] ?? null;
-        $offer->aeroport_origen_id = $validated['aeroport_origen_id'] ?? null;
-        $offer->aeroport_desti_id = $validated['aeroport_desti_id'] ?? null;
-        $offer->tipus_contenidor_id = $validated['tipus_contenidor_id'] ?? null;
-        $offer->pes_brut = $validated['pes_brut'] ?? null;
-        $offer->volum = $validated['volum'] ?? null;
-        $offer->comentaris = $validated['comentaris'] ?? null;
-        $offer->rao_rebuig = $validated['rao_rebuig'] ?? null;
-        $offer->data_creacio = $validated['data_creacio'];
-        $offer->data_validessa_inicial = $validated['data_validessa_inicial'] ?? null;
-        $offer->data_validessa_final = $validated['data_validessa_final'] ?? null;
-        $offer->preu = $validated['preu'] ?? null;
-        $offer->save();
-        $offer->load(['client:id,nom_empresa', 'operador:id,nom,cognoms', 'estatOferta:id,estat', 'tipusTransport:id,tipus', 'tipusIncoterm:id,codi,nom']);
-
-        return response()->json([
-            'message' => 'Oferta actualizada correctamente.',
-            'offer' => $this->serializarOferta($offer),
-        ]);
     }
 
     // Devuelve el detalle completo de una oferta concreta.
     public function show(Request $request, $id): JsonResponse
     {
-        $offer = Oferta::find($id);
+        $offer = $this->resolverOfertaConAcceso($request, $id, 'No tienes permisos para ver esta oferta.');
 
-        if (! $offer) {
-            return response()->json(['message' => 'Oferta no encontrada.'], 404);
-        }
-
-        if (! $this->puedeAccederOferta($request, $offer)) {
-            return response()->json([
-                'message' => 'No tienes permisos para ver esta oferta.',
-            ], 403);
+        if ($offer instanceof JsonResponse) {
+            return $offer;
         }
 
         return response()->json([
-            'offer' => $this->serializarDetalleOferta($offer->id),
-        ]);
-    }
-
-    // Cambia el estado de una oferta (aceptar/rechazar) con validaciones de negocio.
-    public function actualizarEstado(Request $request, $id): JsonResponse
-    {
-        $offer = Oferta::find($id);
-
-        if (! $offer) {
-            return response()->json(['message' => 'Oferta no encontrada.'], 404);
-        }
-
-        if (! $this->puedeAccederOferta($request, $offer)) {
-            return response()->json([
-                'message' => 'No tienes permisos para gestionar esta oferta.',
-            ], 403);
-        }
-
-        if (! $this->puedeGestionarEstadoOferta($request)) {
-            return response()->json([
-                'message' => 'Solo el cliente puede aceptar o rechazar ofertas.',
-            ], 403);
-        }
-
-        // Solo se permiten los estados esperados por la logica de negocio: 2 (aceptada) o 3 (rechazada).
-        $validated = $request->validate([
-            'estat_oferta_id' => ['required', 'integer', Rule::in([2, 3])],
-            'rao_rebuig' => ['nullable', 'string', 'max:255', 'required_if:estat_oferta_id,3'],
-        ]);
-
-        // Solo se permite transicionar desde estado pendiente (id=1).
-        if ((int) $offer->estat_oferta_id !== 1) {
-            return response()->json([
-                'message' => 'Esta oferta ya fue gestionada y no puede cambiar de estado.',
-            ], 422);
-        }
-
-        $offer->estat_oferta_id = (int) $validated['estat_oferta_id'];
-        $existeColumnaPasoTracking = $this->soportaColumnaPasoTracking();
-
-        // Rechazo: guarda motivo y limpia paso de tracking si existe la columna.
-        if ((int) $validated['estat_oferta_id'] === 3) {
-            $offer->rao_rebuig = trim((string) ($validated['rao_rebuig'] ?? ''));
-
-            if ($existeColumnaPasoTracking) {
-                $offer->tracking_step_id = null;
-            }
-        }
-
-        // Aceptacion: borra motivo de rechazo y arranca tracking en su primer paso.
-        if ((int) $validated['estat_oferta_id'] === 2) {
-            $offer->rao_rebuig = null;
-
-            if ($existeColumnaPasoTracking) {
-                $offer->tracking_step_id = $this->resolverIdPasoTrackingInicial();
-            }
-        }
-
-        $offer->save();
-
-        return response()->json([
-            'message' => (int) $validated['estat_oferta_id'] === 2
-                ? 'Oferta aceptada correctamente.'
-                : 'Oferta rechazada correctamente.',
             'offer' => $this->serializarDetalleOferta($offer->id),
         ]);
     }
@@ -285,16 +181,10 @@ class OfertesController extends Controller
     // Elimina una oferta si existe y el usuario tiene permiso para esa oferta.
     public function destroy(Request $request, $id): JsonResponse
     {
-        $offer = Oferta::find($id);
+        $offer = $this->resolverOfertaConAcceso($request, $id, 'No tienes permisos para eliminar esta oferta.');
 
-        if (! $offer) {
-            return response()->json(['message' => 'Oferta no encontrada.'], 404);
-        }
-
-        if (! $this->puedeAccederOferta($request, $offer)) {
-            return response()->json([
-                'message' => 'No tienes permisos para eliminar esta oferta.',
-            ], 403);
+        if ($offer instanceof JsonResponse) {
+            return $offer;
         }
 
         $offer->delete();
@@ -304,97 +194,8 @@ class OfertesController extends Controller
         ]);
     }
 
-    // Devuelve una vista simplificada de tracking para ofertas aceptadas.
-    public function listarTracking(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        if (! $user) {
-            return response()->json([
-                'tracking' => [],
-            ]);
-        }
-
-        // Esta consulta junta varias tablas para generar el tracking en una sola respuesta.
-        $query = DB::table('ofertes as o')
-            ->leftJoin('tipus_transports as tt', 'o.tipus_transport_id', '=', 'tt.id')
-            ->leftJoin('tipus_incoterms as ti', 'o.tipus_incoterm_id', '=', 'ti.id')
-            ->leftJoin('ports as po', 'o.port_origen_id', '=', 'po.id')
-            ->leftJoin('ports as pd', 'o.port_desti_id', '=', 'pd.id')
-            ->leftJoin('aeroports as ao', 'o.aeroport_origen_id', '=', 'ao.id')
-            ->leftJoin('aeroports as ad', 'o.aeroport_desti_id', '=', 'ad.id')
-            ->where('o.estat_oferta_id', 2)
-            ->orderByDesc('o.id');
-
-        $tieneColumnaPasoTracking = $this->soportaColumnaPasoTracking();
-
-        // Compatibilidad: solo se hace join de pasos si la columna existe en este entorno.
-        if ($tieneColumnaPasoTracking) {
-            $query->leftJoin('tracking_steps as ts', 'o.tracking_step_id', '=', 'ts.id');
-        }
-
-        // Restriccion de resultados por rol autenticado.
-        if ($this->esUsuarioOperador($user)) {
-            $query->where('o.operador_id', $user->id);
-        } elseif ($this->esUsuarioCliente($user)) {
-            $clientId = $this->obtenerIdClientePorUsuario($user);
-
-            if (! $clientId) {
-                return response()->json([
-                    'tracking' => [],
-                ]);
-            }
-
-            $query->where('o.client_id', $clientId);
-        }
-
-        $selectColumns = [
-            'o.id',
-            'o.data_creacio',
-            'tt.tipus as medi',
-            'ti.codi as incoterm_codi',
-            'ti.nom as incoterm_nom',
-            'po.nom as port_origen',
-            'pd.nom as port_desti',
-            'ao.codi as aeroport_origen_codi',
-            'ao.nom as aeroport_origen_nom',
-            'ad.codi as aeroport_desti_codi',
-            'ad.nom as aeroport_desti_nom',
-        ];
-
-        if ($tieneColumnaPasoTracking) {
-            $selectColumns[] = DB::raw('COALESCE(ts.nom, \'\') as tracking_step_nom');
-        }
-
-        $rows = $query->get($selectColumns);
-
-        $trackingState = $this->resolverNombrePasoTrackingInicial();
-
-        // Se transforma cada fila SQL al formato final que consume el frontend.
-        $tracking = $rows->map(function ($row) use ($trackingState) {
-            $incotermCode = trim((string) ($row->incoterm_codi ?? ''));
-            $incotermName = trim((string) ($row->incoterm_nom ?? ''));
-            $incoterm = trim($incotermCode . ($incotermCode !== '' && $incotermName !== '' ? ' - ' : '') . $incotermName);
-
-            return [
-                'id' => (int) $row->id,
-                'ruta' => $this->construirRutaTracking($row),
-                'medio' => trim((string) ($row->medi ?? '')),
-                'incoterm' => $incoterm,
-                'estado' => trim((string) ($row->tracking_step_nom ?? '')) !== ''
-                    ? trim((string) $row->tracking_step_nom)
-                    : $trackingState,
-                'fecha_creacion' => $row->data_creacio,
-            ];
-        })->values();
-
-        return response()->json([
-            'tracking' => $tracking,
-        ]);
-    }
-
     // Reglas de validacion compartidas entre crear y actualizar oferta.
-    private function reglas(?Oferta $offer = null): array
+    private function reglas(): array
     {
         return [
             'tipus_transport_id' => ['required', 'integer', Rule::exists('tipus_transports', 'id')],
@@ -406,34 +207,6 @@ class OfertesController extends Controller
             'operador_id' => ['required', 'integer', Rule::exists('usuaris', 'id')],
             'estat_oferta_id' => ['required', 'integer', Rule::exists('estats_ofertes', 'id')],
             'tipus_validacio_id' => ['required', 'integer', Rule::exists('tipus_validacions', 'id')],
-            'transportista_id' => ['nullable', 'integer', Rule::exists('transportistes', 'id')],
-            'linia_transport_maritim_id' => ['nullable', 'integer', Rule::exists('linies_transport_maritim', 'id')],
-            'port_origen_id' => ['nullable', 'integer', Rule::exists('ports', 'id')],
-            'port_desti_id' => ['nullable', 'integer', Rule::exists('ports', 'id')],
-            'aeroport_origen_id' => ['nullable', 'integer', Rule::exists('aeroports', 'id')],
-            'aeroport_desti_id' => ['nullable', 'integer', Rule::exists('aeroports', 'id')],
-            'tipus_contenidor_id' => ['nullable', 'integer', Rule::exists('tipus_contenidors', 'id')],
-            'pes_brut' => ['nullable', 'numeric'],
-            'volum' => ['nullable', 'numeric'],
-            'comentaris' => ['nullable', 'string', 'max:255'],
-            'rao_rebuig' => ['nullable', 'string', 'max:255'],
-            'data_creacio' => ['required', 'date'],
-            'data_validessa_inicial' => ['nullable', 'date'],
-            'data_validessa_final' => ['nullable', 'date', 'after_or_equal:data_validessa_inicial'],
-            'preu' => ['nullable', 'integer'],
-        ];
-    }
-
-    // Serializa una oferta para listados (payload corto).
-    private function serializarOferta(Oferta $offer): array
-    {
-        $incotermCode = trim((string) ($offer->tipusIncoterm?->codi ?? ''));
-        $incotermName = trim((string) ($offer->tipusIncoterm?->nom ?? ''));
-        $incotermLabel = trim($incotermCode . ($incotermCode !== '' && $incotermName !== '' ? ' - ' : '') . $incotermName);
-
-        return [
-            'id' => $offer->id,
-            'tipus_transport_id' => $offer->tipus_transport_id,
             'tipus_fluxe_id' => $offer->tipus_fluxe_id,
             'tipus_carrega_id' => $offer->tipus_carrega_id,
             'tipus_incoterm_id' => $offer->tipus_incoterm_id,
@@ -448,66 +221,20 @@ class OfertesController extends Controller
             'operador' => trim(($offer->operador?->nom ?? '') . ' ' . ($offer->operador?->cognoms ?? '')),
             'estat' => $offer->estatOferta?->estat,
             'tipus_transport' => $offer->tipusTransport?->tipus,
-            'tipus_incoterm' => $incotermLabel,
+            'tipus_incoterm' => $this->formatearIncoterm($offer->tipusIncoterm?->codi, $offer->tipusIncoterm?->nom),
         ];
     }
 
     private function serializarDetalleOferta(int $offerId): array
     {
-        // El detalle usa muchos joins para reconstruir la oferta con todos sus catálogos.
-        $offer = DB::table('ofertes as o')
-            ->leftJoin('clients as c', 'o.client_id', '=', 'c.id')
-            ->leftJoin('usuaris as op', 'o.operador_id', '=', 'op.id')
-            ->leftJoin('usuaris as ac', 'o.agent_comercial_id', '=', 'ac.id')
-            ->leftJoin('tipus_transports as tt', 'o.tipus_transport_id', '=', 'tt.id')
-            ->leftJoin('tipus_fluxes as tf', 'o.tipus_fluxe_id', '=', 'tf.id')
-            ->leftJoin('tipus_carrega as tc', 'o.tipus_carrega_id', '=', 'tc.id')
-            ->leftJoin('tipus_incoterms as ti', 'o.tipus_incoterm_id', '=', 'ti.id')
-            ->leftJoin('tipus_validacions as tv', 'o.tipus_validacio_id', '=', 'tv.id')
-            ->leftJoin('estats_ofertes as eo', 'o.estat_oferta_id', '=', 'eo.id')
-            ->leftJoin('transportistes as tr', 'o.transportista_id', '=', 'tr.id')
-            ->leftJoin('linies_transport_maritim as ltm', 'o.linia_transport_maritim_id', '=', 'ltm.id')
-            ->leftJoin('ports as po', 'o.port_origen_id', '=', 'po.id')
-            ->leftJoin('ports as pd', 'o.port_desti_id', '=', 'pd.id')
-            ->leftJoin('aeroports as ao', 'o.aeroport_origen_id', '=', 'ao.id')
-            ->leftJoin('aeroports as ad', 'o.aeroport_desti_id', '=', 'ad.id')
-            ->leftJoin('tipus_contenidors as tco', 'o.tipus_contenidor_id', '=', 'tco.id')
-            ->where('o.id', $offerId)
-            ->select([
-                'o.*',
-                'c.nom_empresa as client',
-                'tt.tipus as tipus_transport',
-                'tf.tipus as tipus_fluxe',
-                'tc.tipus as tipus_carrega',
-                'ti.codi as incoterm_codi',
-                'ti.nom as incoterm_nom',
-                'tv.tipus as tipus_validacio',
-                'eo.estat as estat',
-                'tr.nom as transportista',
-                'ltm.nom as linia_transport_maritim',
-                'po.nom as port_origen',
-                'pd.nom as port_desti',
-                'ao.codi as aeroport_origen_codi',
-                'ao.nom as aeroport_origen_nom',
-                'ad.codi as aeroport_desti_codi',
-                'ad.nom as aeroport_desti_nom',
-                'tco.tipus as tipus_contenidor',
-                'op.nom as operador_nom',
-                'op.cognoms as operador_cognoms',
-                'ac.nom as agent_nom',
-                'ac.cognoms as agent_cognoms',
-            ])
-            ->first();
+        // El detalle se resuelve con relaciones Eloquent precargadas.
+        $offer = Oferta::with($this->relacionesDetalleOferta())
+            ->find($offerId);
 
         // Si la consulta no encuentra la oferta, devolvemos estructura vacia.
         if (! $offer) {
             return [];
         }
-
-        $incotermCode = trim((string) ($offer->incoterm_codi ?? ''));
-        $incotermName = trim((string) ($offer->incoterm_nom ?? ''));
-
-        $incotermLabel = trim($incotermCode . ($incotermCode !== '' && $incotermName !== '' ? ' - ' : '') . $incotermName);
 
         return [
             'id' => $offer->id,
@@ -532,26 +259,76 @@ class OfertesController extends Controller
             'preu' => $offer->preu,
             'comentaris' => $offer->comentaris,
             'rao_rebuig' => $offer->rao_rebuig,
-            'data_creacio' => $offer->data_creacio,
-            'data_validessa_inicial' => $offer->data_validessa_inicial,
-            'data_validessa_final' => $offer->data_validessa_final,
-            'client' => $offer->client,
-            'operador' => trim((string) ($offer->operador_nom ?? '') . ' ' . (string) ($offer->operador_cognoms ?? '')),
-            'agent_comercial' => trim((string) ($offer->agent_nom ?? '') . ' ' . (string) ($offer->agent_cognoms ?? '')),
-            'tipus_transport' => $offer->tipus_transport,
-            'tipus_fluxe' => $offer->tipus_fluxe,
-            'tipus_carrega' => $offer->tipus_carrega,
-            'tipus_incoterm' => $incotermLabel,
-            'tipus_validacio' => $offer->tipus_validacio,
-            'estat' => $offer->estat,
-            'transportista' => $offer->transportista,
-            'linia_transport_maritim' => $offer->linia_transport_maritim,
-            'port_origen' => $offer->port_origen,
-            'port_desti' => $offer->port_desti,
-            'aeroport_origen' => trim((string) ($offer->aeroport_origen_codi ?? '') . ' ' . (string) ($offer->aeroport_origen_nom ?? '')),
-            'aeroport_desti' => trim((string) ($offer->aeroport_desti_codi ?? '') . ' ' . (string) ($offer->aeroport_desti_nom ?? '')),
-            'tipus_contenidor' => $offer->tipus_contenidor,
+            'data_creacio' => optional($offer->data_creacio)->format('Y-m-d'),
+            'data_validessa_inicial' => optional($offer->data_validessa_inicial)->format('Y-m-d'),
+            'data_validessa_final' => optional($offer->data_validessa_final)->format('Y-m-d'),
+            'client' => $offer->client?->nom_empresa,
+            'operador' => trim((string) ($offer->operador?->nom ?? '') . ' ' . (string) ($offer->operador?->cognoms ?? '')),
+            'agent_comercial' => trim((string) ($offer->agentComercial?->nom ?? '') . ' ' . (string) ($offer->agentComercial?->cognoms ?? '')),
+            'tipus_transport' => $offer->tipusTransport?->tipus,
+            'tipus_fluxe' => $offer->tipusFluxe?->tipus,
+            'tipus_carrega' => $offer->tipusCarrega?->tipus,
+            'tipus_incoterm' => $this->formatearIncoterm($offer->tipusIncoterm?->codi, $offer->tipusIncoterm?->nom),
+            'tipus_validacio' => $offer->tipusValidacio?->tipus,
+            'estat' => $offer->estatOferta?->estat,
+            'transportista' => $offer->transportista?->nom,
+            'linia_transport_maritim' => $offer->liniaTransportMaritim?->nom,
+            'port_origen' => $offer->portOrigen?->nom,
+            'port_desti' => $offer->portDesti?->nom,
+            'aeroport_origen' => trim((string) ($offer->aeroportOrigen?->codi ?? '') . ' ' . (string) ($offer->aeroportOrigen?->nom ?? '')),
+            'aeroport_desti' => trim((string) ($offer->aeroportDesti?->codi ?? '') . ' ' . (string) ($offer->aeroportDesti?->nom ?? '')),
+            'tipus_contenidor' => $offer->tipusContenidor?->tipus,
         ];
+    }
+
+    private function relacionesDetalleOferta(): array
+    {
+        return [
+            'client:id,nom_empresa',
+            'operador:id,nom,cognoms',
+            'agentComercial:id,nom,cognoms',
+            'tipusTransport:id,tipus',
+            'tipusFluxe:id,tipus',
+            'tipusCarrega:id,tipus',
+            'tipusIncoterm:id,codi,nom',
+            'tipusValidacio:id,tipus',
+            'estatOferta:id,estat',
+            'transportista:id,nom',
+            'liniaTransportMaritim:id,nom',
+            'portOrigen:id,nom',
+            'portDesti:id,nom',
+            'aeroportOrigen:id,codi,nom',
+            'aeroportDesti:id,codi,nom',
+            'tipusContenidor:id,tipus',
+        ];
+    }
+
+    private function relacionesOferta(): array
+    {
+        return [
+            'client:id,nom_empresa',
+            'operador:id,nom,cognoms',
+            'estatOferta:id,estat',
+            'tipusTransport:id,tipus',
+            'tipusIncoterm:id,codi,nom',
+        ];
+    }
+
+    private function resolverOfertaConAcceso(Request $request, $id, string $mensajePermiso): Oferta|JsonResponse
+    {
+        $offer = Oferta::find($id);
+
+        if (! $offer) {
+            return response()->json(['message' => 'Oferta no encontrada.'], 404);
+        }
+
+        if (! $this->puedeAccederOferta($request, $offer)) {
+            return response()->json([
+                'message' => $mensajePermiso,
+            ], 403);
+        }
+
+        return $offer;
     }
 
     // Evalua si el usuario autenticado puede ver/editar/eliminar una oferta concreta.
@@ -602,11 +379,8 @@ class OfertesController extends Controller
             return false;
         }
 
-        $roleName = strtolower((string) ($user->rol?->rol ?? ''));
-
         return (int) $user->id === 1
-            || (int) $user->rol_id === 1
-            || str_contains($roleName, 'admin');
+            || $this->usuarioTieneRol($user, 1, ['admin']);
     }
 
     // Heuristica de deteccion de operador por rol_id o nombre de rol.
@@ -616,11 +390,7 @@ class OfertesController extends Controller
             return false;
         }
 
-        $roleName = strtolower((string) ($user->rol?->rol ?? ''));
-
-        return (int) $user->rol_id === 2
-            || str_contains($roleName, 'operador')
-            || str_contains($roleName, 'operator');
+        return $this->usuarioTieneRol($user, 2, ['operador', 'operator']);
     }
 
     // Heuristica de deteccion de cliente por rol_id o nombre de rol.
@@ -630,10 +400,24 @@ class OfertesController extends Controller
             return false;
         }
 
+        return $this->usuarioTieneRol($user, 3, ['client']);
+    }
+
+    private function usuarioTieneRol($user, int $roleId, array $roleKeywords): bool
+    {
+        if ((int) ($user->rol_id ?? 0) === $roleId) {
+            return true;
+        }
+
         $roleName = strtolower((string) ($user->rol?->rol ?? ''));
 
-        return (int) $user->rol_id === 3
-            || str_contains($roleName, 'client');
+        foreach ($roleKeywords as $keyword) {
+            if (str_contains($roleName, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function obtenerIdClientePorUsuario($user): ?int // Obtiene el ID del cliente asociado al usuario autenticado.
@@ -647,9 +431,9 @@ class OfertesController extends Controller
         return $user->client?->id ? (int) $user->client->id : null;
     }
 
-    private function obtenerOpciones(string $table, array $labelColumns): array // Obtiene las opciones para un desplegable a partir de los datos de una tabla.
+    private function obtenerOpciones(string $modelClass, array $labelColumns): array // Obtiene las opciones para un desplegable a partir de un modelo Eloquent.
     {
-        $rows = DB::table($table)
+        $rows = $modelClass::query()
             ->orderBy('id')
             ->get();
 
@@ -693,105 +477,40 @@ class OfertesController extends Controller
             ->all();
     }
 
-    private function buscarIdEstadoPorPalabras(array $statuses, array $keywords): ?int // Busca el ID de un estado en base a palabras clave.
+    private function formatearIncoterm(?string $code, ?string $name): string
     {
-        foreach ($statuses as $status) {
-            $label = $this->normalizarTexto((string) ($status['label'] ?? ''));
+        $incotermCode = trim((string) ($code ?? ''));
+        $incotermName = trim((string) ($name ?? ''));
 
-            foreach ($keywords as $keyword) {
-                if (str_contains($label, $this->normalizarTexto($keyword))) {
-                    return (int) ($status['id'] ?? 0);
-                }
-            }
-        }
-
-        return null;
+        return trim($incotermCode . ($incotermCode !== '' && $incotermName !== '' ? ' - ' : '') . $incotermName);
     }
 
-    private function normalizarTexto(string $value): string // Normaliza el texto para facilitar las comparaciones, eliminando acentos, diéresis, eñes y convirtiendo a minúsculas.
+    private function asignarCamposOferta(Oferta $offer, array $validated): void
     {
-        $normalized = strtolower(trim($value));
-
-        return str_replace(
-            ['à', 'á', 'è', 'é', 'ì', 'í', 'ò', 'ó', 'ù', 'ú', 'ü', 'ñ'],
-            ['a', 'a', 'e', 'e', 'i', 'i', 'o', 'o', 'u', 'u', 'u', 'n'],
-            $normalized
-        );
+        $offer->tipus_transport_id = $validated['tipus_transport_id'];
+        $offer->tipus_fluxe_id = $validated['tipus_fluxe_id'];
+        $offer->tipus_carrega_id = $validated['tipus_carrega_id'];
+        $offer->tipus_incoterm_id = $validated['tipus_incoterm_id'];
+        $offer->client_id = $validated['client_id'];
+        $offer->agent_comercial_id = $validated['agent_comercial_id'] ?? null;
+        $offer->operador_id = $validated['operador_id'];
+        $offer->estat_oferta_id = $validated['estat_oferta_id'];
+        $offer->tipus_validacio_id = $validated['tipus_validacio_id'];
+        $offer->transportista_id = $validated['transportista_id'] ?? null;
+        $offer->linia_transport_maritim_id = $validated['linia_transport_maritim_id'] ?? null;
+        $offer->port_origen_id = $validated['port_origen_id'] ?? null;
+        $offer->port_desti_id = $validated['port_desti_id'] ?? null;
+        $offer->aeroport_origen_id = $validated['aeroport_origen_id'] ?? null;
+        $offer->aeroport_desti_id = $validated['aeroport_desti_id'] ?? null;
+        $offer->tipus_contenidor_id = $validated['tipus_contenidor_id'] ?? null;
+        $offer->pes_brut = $validated['pes_brut'] ?? null;
+        $offer->volum = $validated['volum'] ?? null;
+        $offer->comentaris = $validated['comentaris'] ?? null;
+        $offer->rao_rebuig = $validated['rao_rebuig'] ?? null;
+        $offer->data_creacio = $validated['data_creacio'];
+        $offer->data_validessa_inicial = $validated['data_validessa_inicial'] ?? null;
+        $offer->data_validessa_final = $validated['data_validessa_final'] ?? null;
+        $offer->preu = $validated['preu'] ?? null;
     }
 
-    private function resolverNombrePasoTrackingInicial(): string // Busca el nombre del primer paso de tracking ordenado por 'ordre' y luego por 'id', para mostrarlo como estado inicial en el tracking.
-    {
-        $firstStep = TrackingStep::query()
-            ->orderBy('ordre')
-            ->orderBy('id')
-            ->value('nom');
-
-        return trim((string) $firstStep) !== ''
-            ? trim((string) $firstStep)
-            : 'En tracking';
-    }
-
-    private function resolverIdPasoTrackingInicial(): ?int // Busca el ID del primer paso de tracking ordenado por 'ordre' y luego por 'id', para asignarlo a una oferta cuando se acepta.
-    {
-        $firstStepId = TrackingStep::query()
-            ->orderBy('ordre')
-            ->orderBy('id')
-            ->value('id');
-
-        return $firstStepId ? (int) $firstStepId : null;
-    }
-
-    private function construirRutaTracking($row): string // Construye una representación de la ruta de tracking a partir de los datos disponibles en el registro, priorizando puertos y aeropuertos.
-    {
-        $portOrigin = trim((string) ($row->port_origen ?? ''));
-        $portDest = trim((string) ($row->port_desti ?? ''));
-
-        if ($portOrigin !== '' || $portDest !== '') {
-            return trim(($portOrigin !== '' ? $portOrigin : '-') . ' -> ' . ($portDest !== '' ? $portDest : '-'));
-        }
-
-        $airportOrigin = trim((string) ($row->aeroport_origen_codi ?? ''));
-        $airportDest = trim((string) ($row->aeroport_desti_codi ?? ''));
-
-        if ($airportOrigin !== '' || $airportDest !== '') {
-            return trim(($airportOrigin !== '' ? $airportOrigin : '-') . ' -> ' . ($airportDest !== '' ? $airportDest : '-'));
-        }
-
-        $airportOriginName = trim((string) ($row->aeroport_origen_nom ?? ''));
-        $airportDestName = trim((string) ($row->aeroport_desti_nom ?? ''));
-
-        if ($airportOriginName !== '' || $airportDestName !== '') {
-            return trim(($airportOriginName !== '' ? $airportOriginName : '-') . ' -> ' . ($airportDestName !== '' ? $airportDestName : '-'));
-        }
-
-        return '-';
-    }
-
-    private function resolverIdEstadoPendiente(): ?int // Busca el ID del estado "Pendiente" en las opciones de estados de ofertas, utilizando palabras clave para identificarlo.
-    {
-        $rows = DB::table('estats_ofertes')
-            ->orderBy('id')
-            ->get();
-
-        foreach ($rows as $row) {
-            $data = (array) $row;
-            $label = $this->normalizarTexto(implode(' ', [
-                (string) ($data['estat'] ?? ''),
-                (string) ($data['nom'] ?? ''),
-                (string) ($data['tipus'] ?? ''),
-            ]));
-
-            if (str_contains($label, 'pend')) {
-                return (int) ($data['id'] ?? 0);
-            }
-        }
-
-        // Fallback defensivo: si no detecta "pendiente", usa el primer estado disponible.
-        return isset($rows[0]?->id) ? (int) $rows[0]->id : null;
-    }
-
-    private function soportaColumnaPasoTracking(): bool // Verifica si la tabla 'ofertes' tiene la columna 'tracking_step_id' para determinar si se pueden gestionar los pasos de tracking.
-    {
-        return Schema::hasColumn('ofertes', 'tracking_step_id');
-    }
 }

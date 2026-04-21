@@ -3,9 +3,17 @@
 namespace App\Models;
 
 use App\Models\EstatOferta;
+use App\Models\Aeroport;
+use App\Models\LiniaTransportMaritim;
+use App\Models\Port;
 use App\Models\TrackingStep;
+use App\Models\TipusCarrega;
+use App\Models\TipusContenidor;
+use App\Models\TipusFluxe;
 use App\Models\TipusIncoterm;
 use App\Models\TipusTransport;
+use App\Models\TipusValidacio;
+use App\Models\Transportista;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -93,5 +101,55 @@ class Oferta extends Model
     public function tipusIncoterm(): BelongsTo
     {
         return $this->belongsTo(TipusIncoterm::class, 'tipus_incoterm_id');
+    }
+
+    public function tipusFluxe(): BelongsTo
+    {
+        return $this->belongsTo(TipusFluxe::class, 'tipus_fluxe_id');
+    }
+
+    public function tipusCarrega(): BelongsTo
+    {
+        return $this->belongsTo(TipusCarrega::class, 'tipus_carrega_id');
+    }
+
+    public function tipusValidacio(): BelongsTo
+    {
+        return $this->belongsTo(TipusValidacio::class, 'tipus_validacio_id');
+    }
+
+    public function transportista(): BelongsTo
+    {
+        return $this->belongsTo(Transportista::class, 'transportista_id');
+    }
+
+    public function liniaTransportMaritim(): BelongsTo
+    {
+        return $this->belongsTo(LiniaTransportMaritim::class, 'linia_transport_maritim_id');
+    }
+
+    public function portOrigen(): BelongsTo
+    {
+        return $this->belongsTo(Port::class, 'port_origen_id');
+    }
+
+    public function portDesti(): BelongsTo
+    {
+        return $this->belongsTo(Port::class, 'port_desti_id');
+    }
+
+    public function aeroportOrigen(): BelongsTo
+    {
+        return $this->belongsTo(Aeroport::class, 'aeroport_origen_id');
+    }
+
+    public function aeroportDesti(): BelongsTo
+    {
+        return $this->belongsTo(Aeroport::class, 'aeroport_desti_id');
+    }
+
+    public function tipusContenidor(): BelongsTo
+    {
+        return $this->belongsTo(TipusContenidor::class, 'tipus_contenidor_id');
     }
 }

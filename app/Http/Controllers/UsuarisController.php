@@ -6,6 +6,8 @@ use App\Models\Usuari;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class UsuarisController extends Controller
 {
@@ -50,12 +52,19 @@ class UsuarisController extends Controller
         $user->correu = $validated['email'];
         $user->contrasenya = $validated['password'];
         $user->rol_id = $validated['rol_id'];
-        $user->save();
 
-        return response()->json([
-            'message' => 'Usuario creado correctamente.',
-            'user' => $this->formatearUsuario($user),
-        ], 201);
+        try {
+            $user->save();
+
+            return response()->json([
+                'message' => 'Usuario creado correctamente.',
+                'user' => $this->formatearUsuario($user),
+            ], 201);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Error interno al crear el usuario.',
+            ], 500);
+        }
     }
 
     public function update(Request $request, $id): JsonResponse
@@ -66,35 +75,46 @@ class UsuarisController extends Controller
             return response()->json(['message' => 'Usuario no encontrado.'], 404);
         }
 
-        $validated = $request->validate([
-            'nom' => ['required', 'string', 'max:50'],
-            'cognoms' => ['required', 'string', 'max:50'],
-            'email' => [
-                'required',
-                'email',
-                'max:50',
-                Rule::unique('usuaris', 'correu')->ignore($user->id),
-            ],
-            'password' => ['nullable', 'string', 'max:255'],
-            'rol_id' => ['required', 'integer', 'in:1,2'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'nom' => ['required', 'string', 'max:50'],
+                'cognoms' => ['required', 'string', 'max:50'],
+                'email' => [
+                    'required',
+                    'email',
+                    'max:50',
+                    Rule::unique('usuaris', 'correu')->ignore($user->id),
+                ],
+                'password' => ['nullable', 'string', 'max:255'],
+                'rol_id' => ['required', 'integer', 'in:1,2'],
+            ]);
 
-        $user->nom = $validated['nom'];
-        $user->cognoms = $validated['cognoms'];
-        $user->correu = $validated['email'];
-        $user->rol_id = $validated['rol_id'];
+            $user->nom = $validated['nom'];
+            $user->cognoms = $validated['cognoms'];
+            $user->correu = $validated['email'];
+            $user->rol_id = $validated['rol_id'];
 
-        if (!empty($validated['password'])) {
-            $user->contrasenya = $validated['password'];
+            if (!empty($validated['password'])) {
+                $user->contrasenya = $validated['password'];
+            }
+
+            $user->save();
+            $user->load('rol');
+
+            return response()->json([
+                'message' => 'Usuario actualizado correctamente.',
+                'user' => $this->formatearUsuario($user),
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Datos de validación incorrectos.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Error interno al actualizar el usuario.',
+            ], 500);
         }
-
-        $user->save();
-        $user->load('rol');
-
-        return response()->json([
-            'message' => 'Usuario actualizado correctamente.',
-            'user' => $this->formatearUsuario($user),
-        ]);
     }
 
     public function destroy($id): JsonResponse // Elimina un usuario existente, devolviendo un mensaje de confirmación.
