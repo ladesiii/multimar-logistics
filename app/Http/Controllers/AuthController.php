@@ -25,6 +25,7 @@ class AuthController extends Controller
         ];
     }
 
+    // Respuesta común para credenciales inválidas en login.
     private function respuestaCredencialesInvalidas(): JsonResponse
     {
         return response()->json([
@@ -32,6 +33,7 @@ class AuthController extends Controller
         ], 401);
     }
 
+    
     public function login(Request $request): JsonResponse
     {
         $credenciales = $request->validate([
