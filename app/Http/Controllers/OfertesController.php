@@ -207,6 +207,29 @@ class OfertesController extends Controller
             'operador_id' => ['required', 'integer', Rule::exists('usuaris', 'id')],
             'estat_oferta_id' => ['required', 'integer', Rule::exists('estats_ofertes', 'id')],
             'tipus_validacio_id' => ['required', 'integer', Rule::exists('tipus_validacions', 'id')],
+            'transportista_id' => ['nullable', 'integer', Rule::exists('transportistes', 'id')],
+            'linia_transport_maritim_id' => ['nullable', 'integer', Rule::exists('linies_transport_maritim', 'id')],
+            'port_origen_id' => ['nullable', 'integer', Rule::exists('ports', 'id')],
+            'port_desti_id' => ['nullable', 'integer', Rule::exists('ports', 'id')],
+            'aeroport_origen_id' => ['nullable', 'integer', Rule::exists('aeroports', 'id')],
+            'aeroport_desti_id' => ['nullable', 'integer', Rule::exists('aeroports', 'id')],
+            'tipus_contenidor_id' => ['nullable', 'integer', Rule::exists('tipus_contenidors', 'id')],
+            'pes_brut' => ['nullable', 'numeric'],
+            'volum' => ['nullable', 'numeric'],
+            'comentaris' => ['nullable', 'string'],
+            'rao_rebuig' => ['nullable', 'string'],
+            'data_creacio' => ['required', 'date'],
+            'data_validessa_inicial' => ['nullable', 'date'],
+            'data_validessa_final' => ['nullable', 'date'],
+            'preu' => ['nullable', 'numeric'],
+        ];
+    }
+
+    private function serializarOferta(Oferta $offer): array
+    {
+        return [
+            'id' => $offer->id,
+            'tipus_transport_id' => $offer->tipus_transport_id,
             'tipus_fluxe_id' => $offer->tipus_fluxe_id,
             'tipus_carrega_id' => $offer->tipus_carrega_id,
             'tipus_incoterm_id' => $offer->tipus_incoterm_id,
