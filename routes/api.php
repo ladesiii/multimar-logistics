@@ -24,34 +24,28 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Solo administradores gestionan usuarios.
     Route::middleware('role:admin')->group(function () {
-        Route::get('/users', [UsuarisController::class, 'index']); // Lista usuarios.
-        Route::post('/users', [UsuarisController::class, 'store']); // Crea un usuario.
-        Route::put('/users/{user}', [UsuarisController::class, 'update']); // Actualiza un usuario existente.
-        Route::delete('/users/{user}', [UsuarisController::class, 'destroy']); // Elimina un usuario.
-
+        Route::apiResource('users', UsuarisController::class)->only(['index', 'store', 'update', 'destroy']); // CRUD de usuarios.
     });
 
     // Administrador y operador gestionan clientes.
     Route::middleware('role:admin,operador')->group(function () {
-        Route::get('/clients', [ClientesController::class, 'index']); // Lista clientes.
-        Route::post('/clients', [ClientesController::class, 'store']); // Crea un cliente.
-        Route::put('/clients/{client}', [ClientesController::class, 'update']); // Actualiza un cliente.
-        Route::delete('/clients/{client}', [ClientesController::class, 'destroy']); // Elimina un cliente.
+        Route::apiResource('clients', ClientesController::class)->only(['index', 'store', 'update', 'destroy']); // CRUD de clientes.
     });
 
     // Estos roles solo consultan ofertas y tracking.
     Route::middleware('role:admin,operador,cliente')->group(function () {
-        Route::get('/offers', [OfertesController::class, 'index']); // Lista ofertas visibles según rol.
-        Route::get('/offers/{offer}', [OfertesController::class, 'show'])->whereNumber('offer'); // Muestra el detalle de una oferta.
+        Route::apiResource('offers', OfertesController::class)
+            ->only(['index', 'show'])
+            ->whereNumber('offer'); // Lectura de ofertas según rol.
         Route::get('/tracking', [TrackingController::class, 'listarTracking']); // Lista ofertas aceptadas en tracking.
     });
 
     // Administrador y operador pueden crear y modificar ofertas.
     Route::middleware('role:admin,operador')->group(function () {
         Route::get('/offers/form-options', [OfertesController::class, 'opcionesFormulario']); // Carga catálogos para el formulario de ofertas.
-        Route::post('/offers', [OfertesController::class, 'store']); // Crea una oferta.
-        Route::put('/offers/{offer}', [OfertesController::class, 'update'])->whereNumber('offer'); // Actualiza una oferta.
-        Route::delete('/offers/{offer}', [OfertesController::class, 'destroy'])->whereNumber('offer'); // Elimina una oferta.
+        Route::apiResource('offers', OfertesController::class)
+            ->only(['store', 'update', 'destroy'])
+            ->whereNumber('offer'); // Escritura de ofertas (admin/operador).
     });
 
     // Cliente y administrador pueden aceptar o rechazar la oferta.

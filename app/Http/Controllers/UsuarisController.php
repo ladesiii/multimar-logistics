@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Clases\Utilitat;
 use App\Http\Resources\UserResource;
 use App\Models\Usuari;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 class UsuarisController extends Controller
 {
@@ -47,9 +48,10 @@ class UsuarisController extends Controller
                 'message' => 'Usuario creado correctamente.',
                 'user' => new UserResource($user->loadMissing('rol')),
             ], 201);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
             return response()->json([
-                'message' => 'Error interno al crear el usuario.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al crear el usuario.',
             ], 500);
         }
     }
@@ -97,9 +99,10 @@ class UsuarisController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
             return response()->json([
-                'message' => 'Error interno al actualizar el usuario.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al actualizar el usuario.',
             ], 500);
         }
     }

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Clases\Utilitat;
 use App\Http\Resources\OfferDetailResource;
 use App\Http\Resources\OfferResource;
 use App\Models\Aeroport;
@@ -16,11 +17,11 @@ use App\Models\TipusIncoterm;
 use App\Models\TipusTransport;
 use App\Models\TipusValidacio;
 use App\Models\Transportista;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 class OfertesController extends Controller
 {
@@ -116,9 +117,11 @@ class OfertesController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
             return response()->json([
-                'message' => 'Error interno al crear la oferta.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al crear la oferta.',
             ], 500);
         }
     }
@@ -158,9 +161,11 @@ class OfertesController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
             return response()->json([
-                'message' => 'Error interno al actualizar la oferta.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al actualizar la oferta.',
             ], 500);
         }
     }
@@ -225,85 +230,6 @@ class OfertesController extends Controller
             'data_validessa_inicial' => ['nullable', 'date'],
             'data_validessa_final' => ['nullable', 'date'],
             'preu' => ['nullable', 'numeric'],
-        ];
-    }
-
-    private function serializarOferta(Oferta $offer): array
-    {
-        return [
-            'id' => $offer->id,
-            'tipus_transport_id' => $offer->tipus_transport_id,
-            'tipus_fluxe_id' => $offer->tipus_fluxe_id,
-            'tipus_carrega_id' => $offer->tipus_carrega_id,
-            'tipus_incoterm_id' => $offer->tipus_incoterm_id,
-            'client_id' => $offer->client_id,
-            'operador_id' => $offer->operador_id,
-            'estat_oferta_id' => $offer->estat_oferta_id,
-            'tracking_step_id' => $offer->tracking_step_id,
-            'tipus_validacio_id' => $offer->tipus_validacio_id,
-            'data_creacio' => optional($offer->data_creacio)->format('Y-m-d'),
-            'preu' => $offer->preu,
-            'client' => $offer->client?->nom_empresa,
-            'operador' => trim(($offer->operador?->nom ?? '') . ' ' . ($offer->operador?->cognoms ?? '')),
-            'estat' => $offer->estatOferta?->estat,
-            'tipus_transport' => $offer->tipusTransport?->tipus,
-            'tipus_incoterm' => $this->formatearIncoterm($offer->tipusIncoterm?->codi, $offer->tipusIncoterm?->nom),
-        ];
-    }
-
-    private function serializarDetalleOferta(int $offerId): array
-    {
-        // El detalle se resuelve con relaciones Eloquent precargadas.
-        $offer = Oferta::with($this->relacionesDetalleOferta())
-            ->find($offerId);
-
-        // Si la consulta no encuentra la oferta, devolvemos estructura vacia.
-        if (! $offer) {
-            return [];
-        }
-
-        return [
-            'id' => $offer->id,
-            'tipus_transport_id' => $offer->tipus_transport_id,
-            'tipus_fluxe_id' => $offer->tipus_fluxe_id,
-            'tipus_carrega_id' => $offer->tipus_carrega_id,
-            'tipus_incoterm_id' => $offer->tipus_incoterm_id,
-            'client_id' => $offer->client_id,
-            'agent_comercial_id' => $offer->agent_comercial_id,
-            'operador_id' => $offer->operador_id,
-            'estat_oferta_id' => $offer->estat_oferta_id,
-            'tipus_validacio_id' => $offer->tipus_validacio_id,
-            'transportista_id' => $offer->transportista_id,
-            'linia_transport_maritim_id' => $offer->linia_transport_maritim_id,
-            'port_origen_id' => $offer->port_origen_id,
-            'port_desti_id' => $offer->port_desti_id,
-            'aeroport_origen_id' => $offer->aeroport_origen_id,
-            'aeroport_desti_id' => $offer->aeroport_desti_id,
-            'tipus_contenidor_id' => $offer->tipus_contenidor_id,
-            'pes_brut' => $offer->pes_brut,
-            'volum' => $offer->volum,
-            'preu' => $offer->preu,
-            'comentaris' => $offer->comentaris,
-            'rao_rebuig' => $offer->rao_rebuig,
-            'data_creacio' => optional($offer->data_creacio)->format('Y-m-d'),
-            'data_validessa_inicial' => optional($offer->data_validessa_inicial)->format('Y-m-d'),
-            'data_validessa_final' => optional($offer->data_validessa_final)->format('Y-m-d'),
-            'client' => $offer->client?->nom_empresa,
-            'operador' => trim((string) ($offer->operador?->nom ?? '') . ' ' . (string) ($offer->operador?->cognoms ?? '')),
-            'agent_comercial' => trim((string) ($offer->agentComercial?->nom ?? '') . ' ' . (string) ($offer->agentComercial?->cognoms ?? '')),
-            'tipus_transport' => $offer->tipusTransport?->tipus,
-            'tipus_fluxe' => $offer->tipusFluxe?->tipus,
-            'tipus_carrega' => $offer->tipusCarrega?->tipus,
-            'tipus_incoterm' => $this->formatearIncoterm($offer->tipusIncoterm?->codi, $offer->tipusIncoterm?->nom),
-            'tipus_validacio' => $offer->tipusValidacio?->tipus,
-            'estat' => $offer->estatOferta?->estat,
-            'transportista' => $offer->transportista?->nom,
-            'linia_transport_maritim' => $offer->liniaTransportMaritim?->nom,
-            'port_origen' => $offer->portOrigen?->nom,
-            'port_desti' => $offer->portDesti?->nom,
-            'aeroport_origen' => trim((string) ($offer->aeroportOrigen?->codi ?? '') . ' ' . (string) ($offer->aeroportOrigen?->nom ?? '')),
-            'aeroport_desti' => trim((string) ($offer->aeroportDesti?->codi ?? '') . ' ' . (string) ($offer->aeroportDesti?->nom ?? '')),
-            'tipus_contenidor' => $offer->tipusContenidor?->tipus,
         ];
     }
 
@@ -390,14 +316,6 @@ class OfertesController extends Controller
         return false;
     }
 
-    // Solo cliente y admin pueden aceptar/rechazar una oferta.
-    private function puedeGestionarEstadoOferta(Request $request): bool
-    {
-        $user = $request->user();
-
-        return $this->esUsuarioCliente($user) || $this->esUsuarioAdmin($user);
-    }
-
     // Heuristica de deteccion de admin por id, rol_id o nombre de rol.
     private function esUsuarioAdmin($user): bool
     {
@@ -463,52 +381,45 @@ class OfertesController extends Controller
             ->orderBy('id')
             ->get();
 
-        return $rows
-            ->map(function ($row) use ($labelColumns) {
-                $data = (array) $row;
-                $id = (int) ($data['id'] ?? 0);
-                $parts = [];
+        $options = [];
 
-                // Construye la etiqueta con el orden de columnas preferido.
-                foreach ($labelColumns as $column) {
-                    $value = trim((string) ($data[$column] ?? ''));
+        foreach ($rows as $row) {
+            $data = (array) $row;
+            $id = (int) ($data['id'] ?? 0);
+            $parts = [];
 
-                    if ($value !== '') {
-                        $parts[] = $value;
+            // Construye la etiqueta con el orden de columnas preferido.
+            foreach ($labelColumns as $column) {
+                $value = trim((string) ($data[$column] ?? ''));
+
+                if ($value !== '') {
+                    $parts[] = $value;
+                }
+            }
+
+            // Fallback: si no hay columnas preferidas con texto, toma el primer campo util.
+            if ($parts === []) {
+                foreach ($data as $column => $value) {
+                    if ($column === 'id') {
+                        continue;
+                    }
+
+                    $text = trim((string) $value);
+
+                    if ($text !== '') {
+                        $parts[] = $text;
+                        break;
                     }
                 }
+            }
 
-                // Fallback: si no hay columnas preferidas con texto, toma el primer campo util.
-                if ($parts === []) {
-                    foreach ($data as $column => $value) {
-                        if ($column === 'id') {
-                            continue;
-                        }
+            $options[] = [
+                'id' => $id,
+                'label' => $parts !== [] ? implode(' - ', $parts) : ('ID ' . $id),
+            ];
+        }
 
-                        $text = trim((string) $value);
-
-                        if ($text !== '') {
-                            $parts[] = $text;
-                            break;
-                        }
-                    }
-                }
-
-                return [
-                    'id' => $id,
-                    'label' => $parts !== [] ? implode(' - ', $parts) : ('ID ' . $id),
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
-    private function formatearIncoterm(?string $code, ?string $name): string
-    {
-        $incotermCode = trim((string) ($code ?? ''));
-        $incotermName = trim((string) ($name ?? ''));
-
-        return trim($incotermCode . ($incotermCode !== '' && $incotermName !== '' ? ' - ' : '') . $incotermName);
+        return $options;
     }
 
     private function asignarCamposOferta(Oferta $offer, array $validated): void

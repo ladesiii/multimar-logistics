@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Clases\Utilitat;
 use App\Http\Resources\OfferStatusResource;
 use App\Models\Oferta;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 class EstadoOfertaController extends Controller
 {
@@ -30,12 +31,6 @@ class EstadoOfertaController extends Controller
         }
 
         try {
-            if (! $this->puedeGestionarEstadoOferta($request)) {
-                return response()->json([
-                    'message' => 'Solo el cliente puede aceptar o rechazar ofertas.',
-                ], 403);
-            }
-
             $validated = $request->validate([
                 'estat_oferta_id' => ['required', 'integer', Rule::in([2, 3])],
                 'rao_rebuig' => ['nullable', 'string', 'max:255', 'required_if:estat_oferta_id,3'],
@@ -80,9 +75,11 @@ class EstadoOfertaController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
             return response()->json([
-                'message' => 'Error interno al actualizar el estado de la oferta.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al actualizar el estado de la oferta.',
             ], 500);
         }
     }
@@ -110,13 +107,6 @@ class EstadoOfertaController extends Controller
         }
 
         return false;
-    }
-
-    private function puedeGestionarEstadoOferta(Request $request): bool
-    {
-        $user = $request->user();
-
-        return $this->esUsuarioCliente($user) || $this->esUsuarioAdmin($user);
     }
 
     private function esUsuarioAdmin($user): bool

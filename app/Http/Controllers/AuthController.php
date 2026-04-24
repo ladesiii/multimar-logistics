@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Clases\Utilitat;
 use App\Http\Resources\AuthUserResource;
 use App\Models\Usuari;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
-use Throwable;
 
 class AuthController extends Controller
 {
@@ -21,7 +22,6 @@ class AuthController extends Controller
             'message' => 'Las credenciales no son válidas.',
         ], 401);
     }
-
 
     public function login(Request $request): JsonResponse
     {
@@ -52,9 +52,11 @@ class AuthController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
             return response()->json([
-                'message' => 'Error interno al iniciar sesión.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al iniciar sesión.',
             ], 500);
         }
     }
@@ -145,9 +147,11 @@ class AuthController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
             return response()->json([
-                'message' => 'Error interno al actualizar el perfil.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al actualizar el perfil.',
             ], 500);
         }
     }
@@ -185,9 +189,11 @@ class AuthController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
             return response()->json([
-                'message' => 'Error interno al verificar la contraseña.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al verificar la contraseña.',
             ], 500);
         }
     }

@@ -50,9 +50,11 @@ class TrackingController extends Controller
         $offers = $query->get();
         $trackingState = $this->resolverNombrePasoTrackingInicial();
 
-        $tracking = $offers
-            ->map(fn (Oferta $offer) => (new TrackingResource($offer))->withDefaultState($trackingState))
-            ->values();
+        $tracking = [];
+
+        foreach ($offers as $offer) {
+            $tracking[] = (new TrackingResource($offer))->withDefaultState($trackingState);
+        }
 
         return response()->json([
             'tracking' => $tracking,

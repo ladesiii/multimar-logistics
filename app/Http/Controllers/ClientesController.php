@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Clases\Utilitat;
 use App\Http\Resources\ClientResource;
 use App\Models\Cliente;
 use App\Models\Usuari;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 class ClientesController extends Controller
 {
@@ -70,9 +71,11 @@ class ClientesController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
             return response()->json([
-                'message' => 'Error interno al crear el cliente.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al crear el cliente.',
             ], 500);
         }
     }
@@ -141,9 +144,11 @@ class ClientesController extends Controller
                 'message' => 'Datos de validación incorrectos.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
             return response()->json([
-                'message' => 'Error interno al actualizar el cliente.',
+                'message' => !empty($mensaje) ? $mensaje : 'Error interno al actualizar el cliente.',
             ], 500);
         }
     }
