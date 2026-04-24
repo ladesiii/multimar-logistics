@@ -1,9 +1,6 @@
-<!--
-Componente: Login
-Descripción: Pantalla de acceso que autentica al usuario contra la API y guarda token/datos de sesión.
--->
+
 <template>
-  <!-- Layout general de la pantalla de login -->
+
   <div class="login-layout">
     <NavbarLogin />
 
@@ -11,7 +8,6 @@ Descripción: Pantalla de acceso que autentica al usuario contra la API y guarda
       <div class="login-card">
         <img :src="logo" alt="Logo" class="logo">
 
-        <!-- Formulario de inicio de sesión -->
         <form class="login-form" @submit.prevent="iniciarSesion">
           <div class="input-group">
             <label for="email">Correo electrónico</label>
@@ -35,7 +31,6 @@ Descripción: Pantalla de acceso que autentica al usuario contra la API y guarda
             >
           </div>
 
-          <!-- Mensaje de error de autenticación -->
           <p v-if="mensajeError" class="form-error">{{ mensajeError }}</p>
 
           <button type="submit" class="btn-submit" :disabled="estaCargando">
@@ -50,22 +45,18 @@ Descripción: Pantalla de acceso que autentica al usuario contra la API y guarda
 </template>
 
 <script setup>
-// Importaciones de Vue y recursos visuales.
 import { reactive, ref } from 'vue'
 import NavbarLogin from '../navbar/NavbarLogin.vue'
 import logo from '../../../assets/multimar-logistics.png'
 
-// Estado del formulario de acceso.
 const formulario = reactive({
   email: '',
   password: '',
 })
 
-// Estado de carga y mensajes de error.
 const estaCargando = ref(false)
 const mensajeError = ref('')
 
-// Envía credenciales al backend, guarda sesión y redirige al dashboard.
 const iniciarSesion = () => {
   estaCargando.value = true
   mensajeError.value = ''
@@ -75,7 +66,6 @@ const iniciarSesion = () => {
     password: formulario.password,
   })
     .then(({ data }) => {
-      // Guardamos la sesión para reutilizarla en las siguientes peticiones.
       localStorage.setItem('auth_token', data.token)
       localStorage.setItem('auth_user', JSON.stringify(data.user))
       window.axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
@@ -102,7 +92,6 @@ const iniciarSesion = () => {
   width: 100%;
 }
 
-/* Contenedor principal (Fondo oscuro) */
 .login-page {
   background-color: #09253B;
   min-height: 93vh;
@@ -113,14 +102,13 @@ const iniciarSesion = () => {
   margin: 0;
 }
 
-/* Tarjeta del Login */
 .login-card {
   background-color: #EAF3F8;
   border: 2px solid #89C4F5;
   border-radius: 12px;
   padding: 2.5rem 2rem;
   width: 100%;
-  max-width: 380px; /* Ancho controlado */
+  max-width: 380px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -139,7 +127,6 @@ const iniciarSesion = () => {
   gap: 1.5rem;
 }
 
-/* Grupos de Input */
 .input-group {
   display: flex;
   flex-direction: column;
@@ -167,9 +154,8 @@ const iniciarSesion = () => {
   box-shadow: 0 0 0 3px rgba(13, 36, 56, 0.12);
 }
 
-/* Botón Iniciar Sesión */
 .btn-submit {
-  background-color: #0D2438; /* Azul muy oscuro casi negro */
+  background-color: #0D2438;
   color: white;
   padding: 14px;
   border: none;
@@ -196,7 +182,6 @@ const iniciarSesion = () => {
   margin-top: -0.5rem;
 }
 
-/* Link de olvidar contraseña */
 .forgot-link {
   text-align: center;
   color: #000;
@@ -206,3 +191,4 @@ const iniciarSesion = () => {
   font-family: sans-serif;
 }
 </style>
+

@@ -1,9 +1,6 @@
-<!--
-Componente: EliminarUsuarioModal
-Descripción: Modal de confirmación para eliminar un usuario.
--->
+
 <template>
-  <!-- Overlay del modal -->
+  
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -11,12 +8,12 @@ Descripción: Modal de confirmación para eliminar un usuario.
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
-      <!-- Mensaje de confirmación mostrando nombre del usuario -->
+      
       <p class="confirm-text">
         Seguro que quieres eliminar el usuario {{ user?.nom_complet }}?
       </p>
 
-      <!-- Acciones disponibles -->
+      
       <div class="confirm-actions">
         <button type="button" class="cancel-btn" @click="$emit('close')">Cancelar</button>
         <button type="button" class="confirm-btn" @click="$emit('confirm')">Aceptar</button>
@@ -26,7 +23,6 @@ Descripción: Modal de confirmación para eliminar un usuario.
 </template>
 
 <script setup>
-// El componente solo necesita el usuario para mostrar el texto de confirmación.
 defineProps({
   user: {
     type: Object,
@@ -34,7 +30,6 @@ defineProps({
   },
 })
 
-// Emite eventos de cierre o confirmación al padre.
 defineEmits(['close', 'confirm'])
 </script>
 
@@ -120,3 +115,4 @@ defineEmits(['close', 'confirm'])
   color: #ffffff;
 }
 </style>
+

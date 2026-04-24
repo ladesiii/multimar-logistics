@@ -1,11 +1,8 @@
-<!--
-Componente: ListadoClientes
-Descripción: Muestra la tabla de clientes y gestiona los modales para crear, editar y eliminar.
--->
+
 <template>
-  <!-- Panel principal de la sección de clientes -->
+  
   <section class="table-panel">
-    <!-- Cabecera de la tabla con acción para abrir el modal de alta -->
+    
     <header class="table-header">
       <h1>Clientes</h1>
       <button type="button" class="add-entity-btn" @click="modalNuevoAbierto = true">
@@ -13,7 +10,7 @@ Descripción: Muestra la tabla de clientes y gestiona los modales para crear, ed
       </button>
     </header>
 
-    <!-- Tabla de datos con estados de carga, error, vacío y contenido -->
+    
     <table class="data-table">
       <thead>
         <tr>
@@ -61,14 +58,14 @@ Descripción: Muestra la tabla de clientes y gestiona los modales para crear, ed
       </tbody>
     </table>
 
-    <!-- Modal de creación de cliente -->
+    
     <NuevoClienteModal
       v-if="modalNuevoAbierto"
       @close="modalNuevoAbierto = false"
       @submit="crearCliente"
     />
 
-    <!-- Modal de edición de cliente -->
+    
     <EditarClienteModal
       v-if="modalEditarAbierto && clienteSeleccionado"
       :client="clienteSeleccionado"
@@ -76,7 +73,7 @@ Descripción: Muestra la tabla de clientes y gestiona los modales para crear, ed
       @submit="editarCliente"
     />
 
-    <!-- Modal de confirmación para eliminar -->
+    
     <EliminarClienteModal
       v-if="modalEliminarAbierto && clienteAEliminar"
       :client="clienteAEliminar"
@@ -84,19 +81,17 @@ Descripción: Muestra la tabla de clientes y gestiona los modales para crear, ed
       @confirm="confirmarEliminarCliente"
     />
 
-    <!-- Error mostrado cuando falla una acción de envío -->
+    
     <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
 </template>
 
 <script setup>
-// Importaciones de Vue y de los modales usados en esta vista.
 import { onMounted, ref } from 'vue'
 import NuevoClienteModal from './modals/NuevoClienteModal.vue'
 import EditarClienteModal from './modals/EditarClienteModal.vue'
 import EliminarClienteModal from './modals/EliminarClienteModal.vue'
 
-// Estado principal de la vista.
 const clientes = ref([])
 const estaCargando = ref(true)
 const mensajeError = ref('')
@@ -107,7 +102,6 @@ const clienteSeleccionado = ref(null)
 const clienteAEliminar = ref(null)
 const errorEnvio = ref('')
 
-// Extrae un mensaje legible desde respuestas de validación del backend.
 const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   const mensajeApi = error.response?.data?.message
   const erroresValidacion = error.response?.data?.errors
@@ -116,7 +110,6 @@ const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   return primerErrorValidacion || mensajeApi || mensajePorDefecto
 }
 
-// Carga la lista de clientes al entrar en la pantalla.
 const cargarClientes = () => {
   estaCargando.value = true
   mensajeError.value = ''
@@ -134,11 +127,9 @@ const cargarClientes = () => {
 }
 
 onMounted(() => {
-  // Primera carga automática al montar el componente.
   cargarClientes()
 })
 
-// Crea un cliente nuevo y refresca la tabla.
 const crearCliente = (datosCliente) => {
   errorEnvio.value = ''
 
@@ -157,7 +148,6 @@ const crearCliente = (datosCliente) => {
     })
 }
 
-// Abre el modal de edición con una copia de los datos del cliente.
 const abrirModalEditar = (cliente) => {
   errorEnvio.value = ''
   clienteSeleccionado.value = {
@@ -172,7 +162,6 @@ const abrirModalEditar = (cliente) => {
   modalEditarAbierto.value = true
 }
 
-// Guarda cambios del cliente seleccionado.
 const editarCliente = (datosCliente) => {
   if (!clienteSeleccionado.value?.id) {
     return
@@ -196,20 +185,17 @@ const editarCliente = (datosCliente) => {
     })
 }
 
-// Abre el modal de eliminación.
 const abrirModalEliminar = (cliente) => {
   errorEnvio.value = ''
   clienteAEliminar.value = cliente
   modalEliminarAbierto.value = true
 }
 
-// Cierra y limpia el estado del modal de eliminación.
 const cerrarModalEliminar = () => {
   modalEliminarAbierto.value = false
   clienteAEliminar.value = null
 }
 
-// Confirma la eliminación y recarga datos.
 const confirmarEliminarCliente = () => {
   if (!clienteAEliminar.value?.id) {
     return
@@ -319,3 +305,4 @@ const confirmarEliminarCliente = () => {
   font-weight: 700;
 }
 </style>
+

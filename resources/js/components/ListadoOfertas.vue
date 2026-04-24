@@ -1,11 +1,8 @@
-<!--
-Componente: ListadoOfertas
-Descripción: Tabla principal de ofertas con visualización de detalle y acciones de crear, eliminar y cambio de estado.
--->
+
 <template>
-  <!-- Contenedor principal del listado de ofertas -->
+  
   <section class="table-panel">
-    <!-- Cabecera con botón de crear según permisos -->
+    
     <header class="table-header">
       <h1>Ofertas</h1>
       <button
@@ -18,7 +15,7 @@ Descripción: Tabla principal de ofertas con visualización de detalle y accione
       </button>
     </header>
 
-    <!-- Tabla con estados de carga/error/vacío y filas de ofertas -->
+    
     <table class="data-table">
       <thead>
         <tr>
@@ -79,7 +76,7 @@ Descripción: Tabla principal de ofertas con visualización de detalle y accione
       </tbody>
     </table>
 
-    <!-- Modal de detalle de oferta, con acciones de aceptar/rechazar -->
+    
     <OfertaDetalleModal
       :is-open="modalVerAbierto"
       :offer="ofertaSeleccionada"
@@ -94,7 +91,7 @@ Descripción: Tabla principal de ofertas con visualización de detalle y accione
       @reject="abrirModalRechazo"
     />
 
-    <!-- Modal de confirmación para eliminar oferta -->
+    
     <EliminarOfertaModal
       v-if="modalEliminarAbierto && ofertaAEliminar"
       :offer="ofertaAEliminar"
@@ -102,7 +99,7 @@ Descripción: Tabla principal de ofertas con visualización de detalle y accione
       @confirm="confirmarEliminarOferta"
     />
 
-    <!-- Modal para registrar motivo de rechazo -->
+    
     <RechazarOfertaModal
       v-if="modalRechazoAbierto && ofertaSeleccionada"
       :offer="ofertaSeleccionada"
@@ -112,7 +109,7 @@ Descripción: Tabla principal de ofertas con visualización de detalle y accione
       @submit="enviarRechazoOferta"
     />
 
-    <!-- Modal de creación de oferta -->
+    
     <NuevaOfertaModal
       v-if="modalCrearAbierto"
       :options="opcionesFormularioOferta"
@@ -122,20 +119,18 @@ Descripción: Tabla principal de ofertas con visualización de detalle y accione
       @submit="crearOferta"
     />
 
-    <!-- Mensaje de error para operaciones de envío -->
+    
     <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
 </template>
 
 <script setup>
-// Importaciones de Vue y modales asociados a esta vista.
 import { computed, onMounted, ref } from 'vue'
 import OfertaDetalleModal from './modals/OfertaDetalleModal.vue'
 import EliminarOfertaModal from './modals/EliminarOfertaModal.vue'
 import RechazarOfertaModal from './modals/RechazarOfertaModal.vue'
 import NuevaOfertaModal from './modals/NuevaOfertaModal.vue'
 
-// Estado local del listado y de todos sus modales/acciones.
 const ofertas = ref([])
 const estaCargando = ref(true)
 const mensajeError = ref('')
@@ -155,9 +150,7 @@ const estaCargandoOpcionesFormulario = ref(false)
 const errorOpcionesFormulario = ref('')
 const opcionesFormularioOferta = ref({})
 
-// Detecta el rol del usuario guardado para habilitar acciones y columnas.
 const rolActual = computed(() => {
-  // El rol se resuelve tanto por id como por nombre para ser tolerante con datos antiguos.
   const usuarioEnTexto = localStorage.getItem('auth_user')
 
   if (!usuarioEnTexto) {
@@ -187,18 +180,15 @@ const rolActual = computed(() => {
   return ''
 })
 
-// Permisos derivados del rol.
 const puedeEliminarOfertas = computed(() => ['admin', 'operador'].includes(rolActual.value))
 const puedeGestionarEstadoOferta = computed(() => ['admin', 'cliente'].includes(rolActual.value))
 const puedeCrearOfertas = computed(() => rolActual.value === 'operador')
 const mostrarColumnaCliente = computed(() => rolActual.value !== 'cliente')
 const mostrarColumnaOperador = computed(() => rolActual.value !== 'operador')
-// Calcula el colspan de la tabla según columnas visibles por rol.
 const numeroColumnasTabla = computed(() => {
   return 7 + (mostrarColumnaCliente.value ? 1 : 0) + (mostrarColumnaOperador.value ? 1 : 0)
 })
 
-// Carga el listado principal de ofertas.
 const cargarOfertas = () => {
   estaCargando.value = true
   mensajeError.value = ''
@@ -215,7 +205,6 @@ const cargarOfertas = () => {
     })
 }
 
-// Carga opciones dinámicas del formulario de alta.
 const cargarOpcionesFormulario = () => {
   estaCargandoOpcionesFormulario.value = true
   errorOpcionesFormulario.value = ''
@@ -232,7 +221,6 @@ const cargarOpcionesFormulario = () => {
     })
 }
 
-// Convierte el id de estado a etiqueta visual.
 const obtenerEtiquetaEstadoOferta = (oferta) => {
   const idEstado = Number(oferta?.estat_oferta_id)
 
@@ -251,7 +239,6 @@ const obtenerEtiquetaEstadoOferta = (oferta) => {
   return oferta?.estat || '-'
 }
 
-// Devuelve clase CSS según el estado de la oferta.
 const obtenerClaseEstadoOferta = (oferta) => {
   const idEstado = Number(oferta?.estat_oferta_id)
 
@@ -271,11 +258,9 @@ const obtenerClaseEstadoOferta = (oferta) => {
 }
 
 onMounted(() => {
-  // Primera carga al montar la vista.
   cargarOfertas()
 })
 
-// Abre el modal de detalle y consulta información completa de la oferta.
 const abrirModalVer = (oferta) => {
   modalVerAbierto.value = true
   estaCargandoDetalle.value = true
@@ -295,7 +280,6 @@ const abrirModalVer = (oferta) => {
     })
 }
 
-// Cierra y limpia el modal de detalle.
 const cerrarModalVer = () => {
   modalVerAbierto.value = false
   ofertaSeleccionada.value = null
@@ -303,7 +287,6 @@ const cerrarModalVer = () => {
   errorAccionEstado.value = ''
 }
 
-// Cambia el estado de la oferta (aceptar/rechazar) desde detalle.
 const actualizarEstadoOferta = (idEstado) => {
   if (!ofertaSeleccionada.value?.id) {
     return
@@ -327,19 +310,16 @@ const actualizarEstadoOferta = (idEstado) => {
     })
 }
 
-// Abre modal específico para capturar motivo de rechazo.
 const abrirModalRechazo = () => {
   errorModalRechazo.value = ''
   modalRechazoAbierto.value = true
 }
 
-// Cierra modal de rechazo y limpia errores del mismo.
 const cerrarModalRechazo = () => {
   modalRechazoAbierto.value = false
   errorModalRechazo.value = ''
 }
 
-// Envía rechazo con motivo y recarga listado.
 const enviarRechazoOferta = ({ rao_rebuig }) => {
   if (!ofertaSeleccionada.value?.id) {
     return
@@ -365,20 +345,17 @@ const enviarRechazoOferta = ({ rao_rebuig }) => {
     })
 }
 
-// Abre confirmación de eliminación.
 const abrirModalEliminar = (oferta) => {
   errorEnvio.value = ''
   ofertaAEliminar.value = oferta
   modalEliminarAbierto.value = true
 }
 
-// Cierra confirmación de eliminación.
 const cerrarModalEliminar = () => {
   modalEliminarAbierto.value = false
   ofertaAEliminar.value = null
 }
 
-// Abre modal de creación y precarga opciones si aún no existen.
 const abrirModalCrear = () => {
   errorEnvio.value = ''
   modalCrearAbierto.value = true
@@ -390,12 +367,10 @@ const abrirModalCrear = () => {
   cargarOpcionesFormulario()
 }
 
-// Cierra modal de creación.
 const cerrarModalCrear = () => {
   modalCrearAbierto.value = false
 }
 
-// Envía alta de oferta al backend.
 const crearOferta = (datosFormulario) => {
   errorEnvio.value = ''
 
@@ -423,7 +398,6 @@ const crearOferta = (datosFormulario) => {
     })
 }
 
-// Elimina la oferta seleccionada y actualiza la tabla.
 const confirmarEliminarOferta = () => {
   if (!ofertaAEliminar.value?.id) {
     return
@@ -561,3 +535,4 @@ const confirmarEliminarOferta = () => {
   color: #991b1b;
 }
 </style>
+

@@ -1,9 +1,6 @@
-<!--
-Componente: NuevoClienteModal
-Descripción: Modal con formulario para crear un cliente nuevo.
--->
+
 <template>
-  <!-- Overlay del modal -->
+  
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -11,7 +8,7 @@ Descripción: Modal con formulario para crear un cliente nuevo.
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
-      <!-- Formulario de alta de cliente -->
+      
       <form class="modal-form" @submit.prevent="enviarFormulario">
         <label for="nom">Nombre</label>
         <input id="nom" v-model="formulario.nom" type="text" required>
@@ -41,13 +38,10 @@ Descripción: Modal con formulario para crear un cliente nuevo.
 </template>
 
 <script setup>
-// Importaciones de Vue.
 import { reactive } from 'vue'
 
-// Eventos hacia el padre: cerrar modal o enviar formulario.
 const emit = defineEmits(['close', 'submit'])
 
-// Estado local del formulario de cliente.
 const formulario = reactive({
   nom: '',
   cognoms: '',
@@ -58,9 +52,7 @@ const formulario = reactive({
   telefon: '',
 })
 
-// Envía los datos al componente padre para que haga la petición a la API.
 const enviarFormulario = () => {
-  // Se envía el formulario tal cual porque el padre ya hace la petición a la API.
   emit('submit', { ...formulario })
 }
 </script>
@@ -146,3 +138,4 @@ const enviarFormulario = () => {
   cursor: pointer;
 }
 </style>
+

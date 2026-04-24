@@ -1,9 +1,6 @@
-<!--
-Componente: RechazarOfertaModal
-Descripción: Solicita un motivo y emite la acción de rechazo de una oferta.
--->
+
 <template>
-  <!-- Overlay del modal; clic fuera cierra -->
+  
   <div class="modal-overlay" @click.self="close">
     <div class="modal-card">
       <header class="modal-header">
@@ -11,7 +8,7 @@ Descripción: Solicita un motivo y emite la acción de rechazo de una oferta.
         <button type="button" class="close-btn" @click="close">x</button>
       </header>
 
-      <!-- Formulario para capturar motivo de rechazo -->
+      
       <form class="modal-form" @submit.prevent="enviarFormulario">
         <p class="helper-text">
           Indica el motivo de rechazo para la oferta #{{ offer?.id }}.
@@ -28,7 +25,7 @@ Descripción: Solicita un motivo y emite la acción de rechazo de una oferta.
           required
         ></textarea>
 
-        <!-- Error recibido desde la petición de rechazo -->
+        
         <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
 
         <div class="confirm-actions">
@@ -41,10 +38,8 @@ Descripción: Solicita un motivo y emite la acción de rechazo de una oferta.
 </template>
 
 <script setup>
-// Importaciones de Vue.
 import { ref } from 'vue'
 
-// Datos y estado de envío recibidos del padre.
 const props = defineProps({
   offer: {
     type: Object,
@@ -60,18 +55,14 @@ const props = defineProps({
   },
 })
 
-// Eventos que el modal notifica al padre.
 const emit = defineEmits(['close', 'submit'])
-// Texto del motivo introducido por el usuario.
 const motivo = ref('')
 
-// Cierra el modal y limpia el motivo actual.
 const close = () => {
   motivo.value = ''
   emit('close')
 }
 
-// Emite el motivo normalizado (sin espacios al inicio/fin).
 const enviarFormulario = () => {
   emit('submit', { rao_rebuig: motivo.value.trim() })
 }
@@ -194,3 +185,4 @@ const enviarFormulario = () => {
   cursor: not-allowed;
 }
 </style>
+
