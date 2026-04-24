@@ -1,6 +1,8 @@
+# Notifica al equipo por email cuando una PR se mergea en main.
 name: Notify Team on Merge
 
 on:
+  # Evento de cierre de PR; se filtra abajo para quedarnos solo con merges.
   pull_request:
     types: [closed]
     branches:
@@ -8,6 +10,7 @@ on:
 
 jobs:
   notify:
+    # Ejecuta solo si la PR fue mergeada.
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
@@ -15,10 +18,12 @@ jobs:
       - name: Send email notification
         uses: dawidd6/action-send-mail@v3
         with:
+          # Config SMTP para envio del correo.
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
+          # Datos dinamicos de la PR mergeada.
           subject: "✅ PR mergeado: ${{ github.event.pull_request.title }}"
           to: mvidaln2425@politecnics.barcelona
           from: ${{ secrets.EMAIL_USERNAME }}

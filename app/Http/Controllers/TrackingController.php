@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\TrackingResource;
 use App\Models\Oferta;
 use App\Models\TrackingStep;
 use Illuminate\Http\JsonResponse;
@@ -49,18 +50,9 @@ class TrackingController extends Controller
         $offers = $query->get();
         $trackingState = $this->resolverNombrePasoTrackingInicial();
 
-        $tracking = $offers->map(function (Oferta $offer) use ($trackingState) {
-            return [
-                'id' => (int) $offer->id,
-                'ruta' => $this->construirRutaTracking($offer),
-                'medio' => trim((string) ($offer->tipusTransport?->tipus ?? '')),
-                'incoterm' => $this->formatearIncoterm($offer->tipusIncoterm?->codi, $offer->tipusIncoterm?->nom),
-                'estado' => trim((string) ($offer->trackingStep?->nom ?? '')) !== ''
-                    ? trim((string) $offer->trackingStep?->nom)
-                    : $trackingState,
-                'fecha_creacion' => optional($offer->data_creacio)->format('Y-m-d'),
-            ];
-        })->values();
+        $tracking = $offers
+            ->map(fn (Oferta $offer) => (new TrackingResource($offer))->withDefaultState($trackingState))
+            ->values();
 
         return response()->json([
             'tracking' => $tracking,
@@ -91,40 +83,6 @@ class TrackingController extends Controller
             ->orderBy('ordre')
             ->orderBy('id')
             ->first(['id', 'nom']);
-    }
-
-    private function construirRutaTracking(Oferta $offer): string
-    {
-        $portOrigin = trim((string) ($offer->portOrigen?->nom ?? ''));
-        $portDest = trim((string) ($offer->portDesti?->nom ?? ''));
-
-        if ($portOrigin !== '' || $portDest !== '') {
-            return trim(($portOrigin !== '' ? $portOrigin : '-') . ' -> ' . ($portDest !== '' ? $portDest : '-'));
-        }
-
-        $airportOrigin = trim((string) ($offer->aeroportOrigen?->codi ?? ''));
-        $airportDest = trim((string) ($offer->aeroportDesti?->codi ?? ''));
-
-        if ($airportOrigin !== '' || $airportDest !== '') {
-            return trim(($airportOrigin !== '' ? $airportOrigin : '-') . ' -> ' . ($airportDest !== '' ? $airportDest : '-'));
-        }
-
-        $airportOriginName = trim((string) ($offer->aeroportOrigen?->nom ?? ''));
-        $airportDestName = trim((string) ($offer->aeroportDesti?->nom ?? ''));
-
-        if ($airportOriginName !== '' || $airportDestName !== '') {
-            return trim(($airportOriginName !== '' ? $airportOriginName : '-') . ' -> ' . ($airportDestName !== '' ? $airportDestName : '-'));
-        }
-
-        return '-';
-    }
-
-    private function formatearIncoterm(?string $code, ?string $name): string
-    {
-        $incotermCode = trim((string) ($code ?? ''));
-        $incotermName = trim((string) ($name ?? ''));
-
-        return trim($incotermCode . ($incotermCode !== '' && $incotermName !== '' ? ' - ' : '') . $incotermName);
     }
 
     private function esUsuarioOperador($user): bool

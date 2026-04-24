@@ -1,25 +1,48 @@
+# Define los servicios (contenedores) que componen la app.
 services:
+  # Servicio principal: Laravel + Nginx + PHP-FPM (segun tu Dockerfile).
   app:
+    # Build local de la imagen usando el contexto del proyecto actual.
     build:
+      # Envia todo este directorio como contexto de build a Docker.
       context: .
+      # Dockerfile que se usara para construir la imagen del servicio app.
       dockerfile: Dockerfile
+    # Nombre fijo del contenedor para ubicarlo facil en docker ps / logs.
     container_name: multimar-logistics
+    # Reinicia automaticamente salvo que se detenga manualmente.
     restart: unless-stopped
+    # Mapeo de puertos: HOST:CONTENEDOR (http://host:8080 -> contenedor:80).
     ports:
       - "8080:80"
+    # Variables de entorno que Laravel leera dentro del contenedor.
     environment:
+      # Nombre visible de la aplicacion.
       APP_NAME: "Multimar Logistics"
+      # Entorno de ejecucion (production desactiva comportamientos de desarrollo).
       APP_ENV: production
+      # Clave de cifrado de Laravel (debe mantenerse secreta).
       APP_KEY: base64:4aoH/6mzTlbjZXuiGWDuoqoPx6LlqsMOGYEgXZH5fo8=
+      # Debug en false para evitar exponer errores sensibles en produccion.
       APP_DEBUG: "false"
+      # URL base publica de la aplicacion.
       APP_URL: http://51.83.192.177
+      # Configuracion de conexion a SQL Server.
       DB_CONNECTION: sqlsrv
+      # Host del motor SQL Server visto desde el contenedor.
       DB_HOST: host.docker.internal
+      # Puerto del motor SQL Server.
       DB_PORT: 1433
+      # Nombre de la base de datos.
       DB_DATABASE: simex07
+      # Usuario de la base de datos.
       DB_USERNAME: simex07
+      # Password de la base de datos.
       DB_PASSWORD: "Politecnics_2026"
+      # Acepta certificado del servidor SQL (util cuando no hay CA valida).
       DB_TRUST_SERVER_CERTIFICATE: "true"
+      # Desactiva cifrado de transporte SQL (ajustar segun politica de seguridad).
       DB_ENCRYPT: "no"
+    # Alias DNS dentro del contenedor para alcanzar servicios del host Docker.
     extra_hosts:
       - "host.docker.internal:host-gateway"

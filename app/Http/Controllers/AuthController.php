@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\AuthUserResource;
 use App\Models\Usuari;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,20 +14,6 @@ use Throwable;
 
 class AuthController extends Controller
 {
-    // Convierte el modelo Usuari al formato de datos que devolvemos en login y perfil.
-    private function formatearUsuario(Usuari $usuario): array
-    {
-        return [
-            'id' => $usuario->id,
-            'email' => $usuario->correu,
-            'name' => trim($usuario->nom . ' ' . $usuario->cognoms),
-            'nom' => $usuario->nom,
-            'cognoms' => $usuario->cognoms,
-            'rol_id' => $usuario->rol_id,
-            'rol' => $usuario->rol?->rol,
-        ];
-    }
-
     // Respuesta común para credenciales inválidas en login.
     private function respuestaCredencialesInvalidas(): JsonResponse
     {
@@ -58,7 +45,7 @@ class AuthController extends Controller
                 'message' => 'Login correcto.',
                 'token_type' => 'Bearer',
                 'token' => $token,
-                'user' => $this->formatearUsuario($usuario),
+                'user' => new AuthUserResource($usuario),
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -151,7 +138,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'message' => 'Perfil actualizado correctamente.',
-                'user' => $this->formatearUsuario($user),
+                'user' => new AuthUserResource($user),
             ]);
         } catch (ValidationException $e) {
             return response()->json([

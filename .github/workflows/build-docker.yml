@@ -1,6 +1,8 @@
+# Construye y publica imagen Docker al cerrar PRs en main.
 name: Build & Push Docker Image
 
 on:
+  # Dispara cuando se cierra una PR; luego se filtra si fue merge real.
   pull_request:
     types: [closed]
     branches:
@@ -8,6 +10,7 @@ on:
 
 jobs:
   build-and-push:
+    # Solo ejecutar si la PR fue mergeada (no cerrada sin merge).
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
@@ -18,14 +21,17 @@ jobs:
       - name: Login en Docker Hub
         uses: docker/login-action@v3
         with:
+          # Credenciales almacenadas en Secrets del repo.
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build y Push imagen
         uses: docker/build-push-action@v5
         with:
+          # Build desde la raiz del repositorio.
           context: .
           push: true
+          # Publica latest y una etiqueta inmutable con el SHA del commit.
           tags: |
             mvidaln/multimar-logistics:latest
             mvidaln/multimar-logistics:${{ github.sha }}

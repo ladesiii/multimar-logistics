@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserResource;
 use App\Models\Usuari;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,28 +12,14 @@ use Throwable;
 
 class UsuarisController extends Controller
 {
-    private function formatearUsuario(Usuari $user): array  // Función para formatear el usuario en index, store y update, evitando repetir código.
-    {
-        return [
-            'id' => $user->id,
-            'nom' => $user->nom,
-            'cognoms' => $user->cognoms,
-            'nom_complet' => trim($user->nom . ' ' . $user->cognoms),
-            'email' => $user->correu,
-            'rol_id' => $user->rol_id,
-            'rol' => $user->rol?->rol ?? 'Sin rol',
-        ];
-    }
-
     public function index(): JsonResponse // Devuelve la lista de usuarios con su rol, formateada para el frontend.
     {
         $users = Usuari::with('rol')
             ->orderBy('id')
-            ->get()
-            ->map(fn (Usuari $user) => $this->formatearUsuario($user));
+            ->get();
 
         return response()->json([
-            'users' => $users,
+            'users' => UserResource::collection($users),
         ]);
     }
 
@@ -58,7 +45,7 @@ class UsuarisController extends Controller
 
             return response()->json([
                 'message' => 'Usuario creado correctamente.',
-                'user' => $this->formatearUsuario($user),
+                'user' => new UserResource($user->loadMissing('rol')),
             ], 201);
         } catch (Throwable $e) {
             return response()->json([
@@ -103,7 +90,7 @@ class UsuarisController extends Controller
 
             return response()->json([
                 'message' => 'Usuario actualizado correctamente.',
-                'user' => $this->formatearUsuario($user),
+                'user' => new UserResource($user),
             ]);
         } catch (ValidationException $e) {
             return response()->json([

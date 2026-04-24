@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\OfferStatusResource;
 use App\Models\Oferta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,7 +73,7 @@ class EstadoOfertaController extends Controller
                 'message' => (int) $validated['estat_oferta_id'] === 2
                     ? 'Oferta aceptada correctamente.'
                     : 'Oferta rechazada correctamente.',
-                'offer' => $this->formatearOfertaActualizada($oferta),
+                'offer' => new OfferStatusResource($oferta),
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -84,17 +85,6 @@ class EstadoOfertaController extends Controller
                 'message' => 'Error interno al actualizar el estado de la oferta.',
             ], 500);
         }
-    }
-
-    private function formatearOfertaActualizada(Oferta $oferta): array
-    {
-        return [
-            'id' => $oferta->id,
-            'estat_oferta_id' => $oferta->estat_oferta_id,
-            'tracking_step_id' => $oferta->tracking_step_id,
-            'rao_rebuig' => $oferta->rao_rebuig,
-            'data_creacio' => optional($oferta->data_creacio)->format('Y-m-d'),
-        ];
     }
 
     private function puedeAccederOferta(Request $request, Oferta $oferta): bool

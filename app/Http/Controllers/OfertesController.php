@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Http\Resources\OfferDetailResource;
+use App\Http\Resources\OfferResource;
 use App\Models\Aeroport;
 use App\Models\Cliente;
 use App\Models\EstatOferta;
@@ -71,11 +73,10 @@ class OfertesController extends Controller
         }
 
         $offers = $consultaOfertas
-            ->get()
-            ->map(fn (Oferta $offer) => $this->serializarOferta($offer));
+            ->get();
 
         return response()->json([
-            'offers' => $offers,
+            'offers' => OfferResource::collection($offers),
         ]);
     }
 
@@ -108,7 +109,7 @@ class OfertesController extends Controller
 
             return response()->json([
                 'message' => 'Oferta creada correctamente.',
-                'offer' => $this->serializarOferta($offer),
+                'offer' => new OfferResource($offer),
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
@@ -150,7 +151,7 @@ class OfertesController extends Controller
 
             return response()->json([
                 'message' => 'Oferta actualizada correctamente.',
-                'offer' => $this->serializarOferta($offer),
+                'offer' => new OfferResource($offer),
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -173,8 +174,10 @@ class OfertesController extends Controller
             return $offer;
         }
 
+        $offer->load($this->relacionesDetalleOferta());
+
         return response()->json([
-            'offer' => $this->serializarDetalleOferta($offer->id),
+            'offer' => new OfferDetailResource($offer),
         ]);
     }
 

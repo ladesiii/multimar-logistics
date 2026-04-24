@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ClientResource;
 use App\Models\Cliente;
 use App\Models\Usuari;
 use Illuminate\Support\Facades\DB;
@@ -13,32 +14,14 @@ use Throwable;
 
 class ClientesController extends Controller
 {
-    private function formatearCliente(Cliente $client): array // Función para no repetir código al formatear el cliente en index, store y update.
-    {
-        $usuari = $client->usuari;
-
-        return [
-            'id' => $client->id,
-            'usuari_id' => $client->usuari_id,
-            'nom' => $usuari?->nom,
-            'cognoms' => $usuari?->cognoms,
-            'nom_complet' => trim(($usuari?->nom ?? '') . ' ' . ($usuari?->cognoms ?? '')),
-            'email' => $usuari?->correu,
-            'nom_empresa' => $client->nom_empresa,
-            'cif_nif' => $client->cif_nif,
-            'telefon' => $client->telefon,
-        ];
-    }
-
     public function index(): JsonResponse
     {
         $clients = Cliente::with('usuari')
             ->orderBy('id')
-            ->get()
-            ->map(fn (Cliente $client) => $this->formatearCliente($client)); // map() transforma el array en uno nuevo con el formato que queremos.
+            ->get();
 
         return response()->json([
-            'clients' => $clients,
+            'clients' => ClientResource::collection($clients),
         ]);
     }
 
@@ -80,7 +63,7 @@ class ClientesController extends Controller
 
             return response()->json([
                 'message' => 'Cliente creado correctamente.',
-                'client' => $this->formatearCliente($client),
+                'client' => new ClientResource($client),
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
@@ -151,7 +134,7 @@ class ClientesController extends Controller
 
             return response()->json([
                 'message' => 'Cliente actualizado correctamente.',
-                'client' => $this->formatearCliente($client),
+                'client' => new ClientResource($client),
             ]);
         } catch (ValidationException $e) {
             return response()->json([
