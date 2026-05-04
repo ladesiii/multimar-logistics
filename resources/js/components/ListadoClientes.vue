@@ -1,8 +1,8 @@
 
 <template>
-  
+
   <section class="table-panel">
-    
+
     <header class="table-header">
       <h1>Clientes</h1>
       <button type="button" class="add-entity-btn" @click="modalNuevoAbierto = true">
@@ -10,7 +10,7 @@
       </button>
     </header>
 
-    
+
     <table class="data-table">
       <thead>
         <tr>
@@ -58,14 +58,14 @@
       </tbody>
     </table>
 
-    
+
     <NuevoClienteModal
       v-if="modalNuevoAbierto"
       @close="modalNuevoAbierto = false"
       @submit="crearCliente"
     />
 
-    
+
     <EditarClienteModal
       v-if="modalEditarAbierto && clienteSeleccionado"
       :client="clienteSeleccionado"
@@ -73,7 +73,7 @@
       @submit="editarCliente"
     />
 
-    
+
     <EliminarClienteModal
       v-if="modalEliminarAbierto && clienteAEliminar"
       :client="clienteAEliminar"
@@ -81,7 +81,7 @@
       @confirm="confirmarEliminarCliente"
     />
 
-    
+
     <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
 </template>
@@ -91,6 +91,7 @@ import { onMounted, ref } from 'vue'
 import NuevoClienteModal from './modals/NuevoClienteModal.vue'
 import EditarClienteModal from './modals/EditarClienteModal.vue'
 import EliminarClienteModal from './modals/EliminarClienteModal.vue'
+import axios from 'axios'
 
 const clientes = ref([])
 const estaCargando = ref(true)
@@ -114,7 +115,7 @@ const cargarClientes = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  window.axios.get('/api/clients')
+  axios.get('/api/clients')
     .then(({ data }) => {
       clientes.value = data.clients || []
     })
@@ -133,7 +134,7 @@ onMounted(() => {
 const crearCliente = (datosCliente) => {
   errorEnvio.value = ''
 
-  window.axios.post('/api/clients', datosCliente)
+  axios.post('/api/clients', datosCliente)
     .then(() => {
       modalNuevoAbierto.value = false
       cargarClientes()
@@ -169,7 +170,7 @@ const editarCliente = (datosCliente) => {
 
   errorEnvio.value = ''
 
-  window.axios.put(`/api/clients/${clienteSeleccionado.value.id}`, datosCliente)
+  axios.put(`/api/clients/${clienteSeleccionado.value.id}`, datosCliente)
     .then(() => {
       modalEditarAbierto.value = false
       clienteSeleccionado.value = null
@@ -203,7 +204,7 @@ const confirmarEliminarCliente = () => {
 
   errorEnvio.value = ''
 
-  window.axios.delete(`/api/clients/${clienteAEliminar.value.id}`)
+  axios.delete(`/api/clients/${clienteAEliminar.value.id}`)
     .then(() => {
       cerrarModalEliminar()
       cargarClientes()

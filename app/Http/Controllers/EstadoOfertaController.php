@@ -16,13 +16,7 @@ class EstadoOfertaController extends Controller
     // Actualiza el estado de una oferta sin depender de OfertesController.
     public function actualizarEstado(Request $request, int $offer): JsonResponse
     {
-        $oferta = Oferta::find($offer);
-
-        if (! $oferta) {
-            return response()->json([
-                'message' => 'Oferta no encontrada.',
-            ], 404);
-        }
+        $oferta = Oferta::findOrFail($offer);
 
         if (! $this->puedeAccederOferta($request, $oferta)) {
             return response()->json([
@@ -96,53 +90,39 @@ class EstadoOfertaController extends Controller
             return true;
         }
 
-        if ($this->esUsuarioCliente($user)) {
-            $clientId = $this->obtenerIdClientePorUsuario($user);
-
-            if (! $clientId) {
-                return false;
-            }
-
-            return (int) $oferta->client_id === (int) $clientId;
+        if (! $this->esUsuarioCliente($user)) {
+            return false;
         }
 
-        return false;
+        $clientId = $this->obtenerIdClientePorUsuario($user);
+
+        if (! $clientId) {
+            return false;
+        }
+
+        return (int) $oferta->client_id === (int) $clientId;
     }
 
     private function esUsuarioAdmin($user): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        return (int) $user->id === 1
-            || $this->usuarioTieneRol($user, 1, ['admin']);
+        return (int) ($user?->id ?? 0) === 1
+            || $this->obtenerRolUsuario($user) === 1;
     }
 
     private function esUsuarioCliente($user): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        return $this->usuarioTieneRol($user, 3, ['client']);
+        return $this->obtenerRolUsuario($user) === 3;
     }
 
-    private function usuarioTieneRol($user, int $roleId, array $roleKeywords): bool
+    private function obtenerRolUsuario($user): ?int
     {
-        if ((int) ($user->rol_id ?? 0) === $roleId) {
-            return true;
+        if (! $user) {
+            return null;
         }
 
-        $roleName = strtolower((string) ($user->rol?->rol ?? ''));
+        $role = $user->rol_id ?? null;
 
-        foreach ($roleKeywords as $keyword) {
-            if (str_contains($roleName, $keyword)) {
-                return true;
-            }
-        }
-
-        return false;
+        return is_null($role) ? null : (int) $role;
     }
 
     private function obtenerIdClientePorUsuario($user): ?int

@@ -1,6 +1,6 @@
 
 <template>
-  
+
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <header class="modal-header">
@@ -8,13 +8,13 @@
         <button type="button" class="close-btn" @click="$emit('close')">x</button>
       </header>
 
-      
+
       <p v-if="isLoading" class="form-status">Cargando opciones del formulario...</p>
       <p v-else-if="errorMessage" class="form-status error">{{ errorMessage }}</p>
 
-      
+
       <form v-else class="modal-form" @submit.prevent="enviarFormulario">
-        
+
         <section class="form-section">
           <h3>1) Informacion principal</h3>
           <div class="fields-grid">
@@ -22,7 +22,7 @@
               <label for="tipus-transport">Tipo de transporte</label>
               <select id="tipus-transport" v-model="form.tipus_transport_id" required>
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.tipus_transports || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.tipus_transports || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -30,7 +30,7 @@
               <label for="tipus-fluxe">Flujo</label>
               <select id="tipus-fluxe" v-model="form.tipus_fluxe_id" required>
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.tipus_fluxes || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.tipus_fluxes || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -38,7 +38,7 @@
               <label for="tipus-carrega">Tipo de carga</label>
               <select id="tipus-carrega" v-model="form.tipus_carrega_id" required>
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.tipus_carrega || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.tipus_carrega || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -46,7 +46,7 @@
               <label for="tipus-incoterm">Incoterm</label>
               <select id="tipus-incoterm" v-model="form.tipus_incoterm_id" required>
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.tipus_incoterms || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.tipus_incoterms || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -54,21 +54,21 @@
               <label for="tipus-validacio">Tipo de validacion</label>
               <select id="tipus-validacio" v-model="form.tipus_validacio_id" required>
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.tipus_validacions || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.tipus_validacions || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
             <div class="field">
               <label for="estat-oferta">Estado de la oferta</label>
               <select id="estat-oferta" v-model="form.estat_oferta_id" required disabled>
-                <option v-for="item in options.estats_ofertes || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.estats_ofertes || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
               <small class="field-help">Se asigna automaticamente como Pendiente al crear.</small>
             </div>
           </div>
         </section>
 
-        
+
         <section class="form-section">
           <h3>2) Cliente</h3>
           <div class="fields-grid one-col">
@@ -76,13 +76,13 @@
               <label for="client">Cliente</label>
               <select id="client" v-model="form.client_id" required>
                 <option value="">Selecciona un cliente</option>
-                <option v-for="item in options.clients || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.clients || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
           </div>
         </section>
 
-        
+
         <section class="form-section">
           <h3>3) Logistica</h3>
           <div class="fields-grid">
@@ -90,7 +90,7 @@
               <label for="transportista">Transportista (opcional)</label>
               <select id="transportista" v-model="form.transportista_id">
                 <option value="">Sin transportista</option>
-                <option v-for="item in options.transportistes || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.transportistes || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -98,7 +98,7 @@
               <label for="linia-maritim">Linea transporte maritimo</label>
               <select id="linia-maritim" v-model="form.linia_transport_maritim_id">
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.linies_transport_maritim || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.linies_transport_maritim || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -106,7 +106,7 @@
               <label for="port-origen">Puerto origen</label>
               <select id="port-origen" v-model="form.port_origen_id">
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.ports || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.ports || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -114,7 +114,7 @@
               <label for="port-desti">Puerto destino</label>
               <select id="port-desti" v-model="form.port_desti_id">
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.ports || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.ports || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -122,7 +122,7 @@
               <label for="aeroport-origen">Aeropuerto origen</label>
               <select id="aeroport-origen" v-model="form.aeroport_origen_id">
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.aeroports || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.aeroports || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -130,7 +130,7 @@
               <label for="aeroport-desti">Aeropuerto destino</label>
               <select id="aeroport-desti" v-model="form.aeroport_desti_id">
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.aeroports || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.aeroports || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
 
@@ -138,13 +138,13 @@
               <label for="tipus-contenidor">Tipo de contenedor</label>
               <select id="tipus-contenidor" v-model="form.tipus_contenidor_id">
                 <option value="">Selecciona una opcion</option>
-                <option v-for="item in options.tipus_contenidors || []" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+                <option v-for="item in options.tipus_contenidors || []" :key="item.id" :value="String(item.id)">{{ obtenerTextoOpcion(item) }}</option>
               </select>
             </div>
           </div>
         </section>
 
-        
+
         <section class="form-section">
           <h3>4) Detalles de la oferta</h3>
           <div class="fields-grid">
@@ -185,7 +185,7 @@
           </div>
         </section>
 
-        
+
         <div class="actions-row">
           <button type="button" class="cancel-btn" @click="$emit('close')">Cancelar</button>
           <button type="submit" class="submit-btn">Crear oferta</button>
@@ -248,9 +248,20 @@ const normalizeText = (value) => String(value || '')
   .replace(/[ùúü]/g, 'u')
   .replace(/ñ/g, 'n')
 
+const obtenerTextoOpcion = (item) => {
+  const texto = item?.label
+    || item?.nom_empresa
+    || item?.nom
+    || item?.codi
+    || item?.tipus
+    || item?.estat
+
+  return texto || `ID ${item?.id ?? ''}`
+}
+
 const obtenerEtiquetaSeleccionada = (lista, id) => {
   const elementoSeleccionado = (lista || []).find((item) => String(item.id) === String(id))
-  return elementoSeleccionado?.label || ''
+  return obtenerTextoOpcion(elementoSeleccionado)
 }
 
 const isMaritimeTransport = computed(() => {

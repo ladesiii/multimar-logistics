@@ -48,6 +48,7 @@
 import { reactive, ref } from 'vue'
 import NavbarLogin from '../navbar/NavbarLogin.vue'
 import logo from '../../../assets/multimar-logistics.png'
+import axios from 'axios'
 
 const formulario = reactive({
   email: '',
@@ -57,33 +58,32 @@ const formulario = reactive({
 const estaCargando = ref(false)
 const mensajeError = ref('')
 
-const iniciarSesion = () => {
+const iniciarSesion = async () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  window.axios.post('/api/login', {
-    email: formulario.email,
-    password: formulario.password,
-  })
-    .then(({ data }) => {
-      localStorage.setItem('auth_token', data.token)
-      localStorage.setItem('auth_user', JSON.stringify(data.user))
-      window.axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
+  try {
+    const { data } = await axios.post('/api/login', {
+      email: formulario.email,
+      password: formulario.password,
+    })
 
-      window.location.href = '/dashboard'
-    })
-    .catch((error) => {
-      if (error.response?.status === 401) {
-        mensajeError.value = 'Correo o contraseña incorrectos.'
-      } else if (error.response?.status === 422) {
-        mensajeError.value = 'Revisa el formato del correo y la contraseña.'
-      } else {
-        mensajeError.value = 'No se pudo iniciar sesión. Inténtalo de nuevo.'
-      }
-    })
-    .finally(() => {
-      estaCargando.value = false
-    })
+    localStorage.setItem('auth_token', data.token)
+    localStorage.setItem('auth_user', JSON.stringify(data.user))
+    axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
+
+    window.location.href = '/dashboard'
+  } catch (error) {
+    if (error.response?.status === 401) {
+      mensajeError.value = 'Correo o contraseña incorrectos.'
+    } else if (error.response?.status === 422) {
+      mensajeError.value = 'Revisa el formato del correo y la contraseña.'
+    } else {
+      mensajeError.value = 'No se pudo iniciar sesión. Inténtalo de nuevo.'
+    }
+  } finally {
+    estaCargando.value = false
+  }
 }
 </script>
 

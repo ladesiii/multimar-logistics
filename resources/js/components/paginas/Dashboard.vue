@@ -28,6 +28,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import axios from 'axios'
 import NavbarVertical from '../navbar/NavbarVertical.vue'
 import NavbarHorizontal from '../navbar/NavbarHorizontal.vue'
 import DashboardVista from '../DashboardVista.vue'
@@ -137,7 +138,7 @@ const gestionarSeleccionSeccion = (nombreSeccion) => {
     seccionSeleccionada.value = nombreSeccion
 }
 
-onMounted(() => {
+onMounted(async () => {
     const tokenSesion = localStorage.getItem('auth_token')
 
     if (!tokenSesion) {
@@ -147,49 +148,48 @@ onMounted(() => {
 
     usuarioActual.value = cargarUsuarioDesdeStorage()
 
-    window.axios.get('/api/user')
-        .then(({ data }) => {
-            const usuarioApi = data?.user ?? null
+    try {
+        const { data } = await axios.get('/api/user')
+        const usuarioApi = data?.user ?? null
 
-            if (!usuarioApi) {
-                throw new Error('Usuario no disponible')
-            }
+        if (!usuarioApi) {
+            throw new Error('Usuario no disponible')
+        }
 
-            usuarioActual.value = {
-                id: usuarioApi.id,
-                email: usuarioApi.correu,
-                name: [usuarioApi.nom, usuarioApi.cognoms].filter(Boolean).join(' ').trim(),
-                nom: usuarioApi.nom,
-                cognoms: usuarioApi.cognoms,
-                rol_id: usuarioApi.rol_id,
-                rol: usuarioApi.rol?.rol,
-            }
+        usuarioActual.value = {
+            id: usuarioApi.id,
+            email: usuarioApi.correu,
+            name: [usuarioApi.nom, usuarioApi.cognoms].filter(Boolean).join(' ').trim(),
+            nom: usuarioApi.nom,
+            cognoms: usuarioApi.cognoms,
+            rol_id: usuarioApi.rol_id,
+            rol: usuarioApi.rol?.rol,
+        }
 
-            localStorage.setItem('auth_user', JSON.stringify(usuarioActual.value))
-        })
-        .catch(() => {
-            localStorage.removeItem('auth_token')
-            localStorage.removeItem('auth_user')
-            delete window.axios.defaults.headers.common.Authorization
-            window.location.href = '/'
-        })
-        .finally(() => {
-            if (!usuarioActual.value) {
-                return
-            }
+        localStorage.setItem('auth_user', JSON.stringify(usuarioActual.value))
+    } catch (e) {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('auth_user')
+        delete axios.defaults.headers.common.Authorization
+        window.location.href = '/'
+        return
+    } finally {
+        if (!usuarioActual.value) {
+            return
+        }
 
-            if (!tipoRol.value) {
-                estaAutorizado.value = false
-                comprobandoSesion.value = false
-                return
-            }
-
-            if (seccionesPermitidas.value.length > 0) {
-                seccionSeleccionada.value = seccionesPermitidas.value[0]
-            }
-
+        if (!tipoRol.value) {
+            estaAutorizado.value = false
             comprobandoSesion.value = false
-        })
+            return
+        }
+
+        if (seccionesPermitidas.value.length > 0) {
+            seccionSeleccionada.value = seccionesPermitidas.value[0]
+        }
+
+        comprobandoSesion.value = false
+    }
 })
 </script>
 

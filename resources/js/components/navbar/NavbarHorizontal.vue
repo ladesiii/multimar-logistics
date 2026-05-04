@@ -58,6 +58,7 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import axios from 'axios'
 
 const nombreUsuario = ref('Usuario')
 const ajustesAbiertos = ref(false)
@@ -96,13 +97,13 @@ const cerrarSesion = () => {
   const tokenSesion = localStorage.getItem('auth_token')
 
   if (tokenSesion) {
-    window.axios.post('/api/logout')
+    axios.post('/api/logout')
       .catch(() => {
       })
       .finally(() => {
         localStorage.removeItem('auth_token')
         localStorage.removeItem('auth_user')
-        delete window.axios.defaults.headers.common.Authorization
+        delete axios.defaults.headers.common.Authorization
         window.location.href = '/'
       })
     return
@@ -110,7 +111,7 @@ const cerrarSesion = () => {
 
   localStorage.removeItem('auth_token')
   localStorage.removeItem('auth_user')
-  delete window.axios.defaults.headers.common.Authorization
+  delete axios.defaults.headers.common.Authorization
   window.location.href = '/'
 }
 

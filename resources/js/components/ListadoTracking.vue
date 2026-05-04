@@ -1,13 +1,13 @@
 
 <template>
-  
+
   <section class="table-panel">
-    
+
     <header class="table-header">
       <h1>Tracking</h1>
     </header>
 
-    
+
     <table class="data-table">
       <thead>
         <tr>
@@ -61,6 +61,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
+import axios from 'axios'
 
 const ofertasTracking = ref([])
 const estaCargando = ref(true)
@@ -70,7 +71,7 @@ const cargarTracking = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  window.axios.get('/api/tracking')
+  axios.get('/api/tracking')
     .then(({ data }) => {
       ofertasTracking.value = Array.isArray(data?.tracking) ? data.tracking : []
     })

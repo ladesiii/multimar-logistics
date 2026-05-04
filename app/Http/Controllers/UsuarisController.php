@@ -58,11 +58,7 @@ class UsuarisController extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
-        $user = Usuari::find($id);
-
-        if (! $user) {
-            return response()->json(['message' => 'Usuario no encontrado.'], 404);
-        }
+        $user = Usuari::findOrFail($id);
 
         try {
             $validated = $request->validate([
@@ -109,11 +105,7 @@ class UsuarisController extends Controller
 
     public function destroy($id): JsonResponse // Elimina un usuario existente, devolviendo un mensaje de confirmación.
     {
-        $user = Usuari::find($id);
-
-        if (! $user) {
-            return response()->json(['message' => 'Usuario no encontrado.'], 404);
-        }
+        $user = Usuari::findOrFail($id);
 
         $user->delete();
 

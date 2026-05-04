@@ -112,6 +112,7 @@ class OfertesController extends Controller
                 'message' => 'Oferta creada correctamente.',
                 'offer' => new OfferResource($offer),
             ], 201);
+
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Datos de validación incorrectos.',
@@ -268,11 +269,7 @@ class OfertesController extends Controller
 
     private function resolverOfertaConAcceso(Request $request, $id, string $mensajePermiso): Oferta|JsonResponse
     {
-        $offer = Oferta::find($id);
-
-        if (! $offer) {
-            return response()->json(['message' => 'Oferta no encontrada.'], 404);
-        }
+        $offer = Oferta::findOrFail($id);
 
         if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([
@@ -316,52 +313,36 @@ class OfertesController extends Controller
         return false;
     }
 
-    // Heuristica de deteccion de admin por id, rol_id o nombre de rol.
+    // Obtiene el rol del usuario autenticado (1=admin, 2=operador, 3=cliente, null=sin rol).
+    private function obtenerRolUsuario($user): ?int
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $role = $user->rol_id ?? null;
+
+        return is_null($role) ? null : (int) $role;
+    }
+
     private function esUsuarioAdmin($user): bool
     {
+        // Mantener la comprobación por id=1 como admin especial
         if (! $user) {
             return false;
         }
 
-        return (int) $user->id === 1
-            || $this->usuarioTieneRol($user, 1, ['admin']);
+        return (int) ($user->id ?? 0) === 1 || $this->obtenerRolUsuario($user) === 1;
     }
 
-    // Heuristica de deteccion de operador por rol_id o nombre de rol.
     private function esUsuarioOperador($user): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        return $this->usuarioTieneRol($user, 2, ['operador', 'operator']);
+        return $this->obtenerRolUsuario($user) === 2;
     }
 
-    // Heuristica de deteccion de cliente por rol_id o nombre de rol.
     private function esUsuarioCliente($user): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        return $this->usuarioTieneRol($user, 3, ['client']);
-    }
-
-    private function usuarioTieneRol($user, int $roleId, array $roleKeywords): bool
-    {
-        if ((int) ($user->rol_id ?? 0) === $roleId) {
-            return true;
-        }
-
-        $roleName = strtolower((string) ($user->rol?->rol ?? ''));
-
-        foreach ($roleKeywords as $keyword) {
-            if (str_contains($roleName, $keyword)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->obtenerRolUsuario($user) === 3;
     }
 
     private function obtenerIdClientePorUsuario($user): ?int // Obtiene el ID del cliente asociado al usuario autenticado.
@@ -377,49 +358,42 @@ class OfertesController extends Controller
 
     private function obtenerOpciones(string $modelClass, array $labelColumns): array // Obtiene las opciones para un desplegable a partir de un modelo Eloquent.
     {
-        $rows = $modelClass::query()
+        // Crea una consulta al modelo que se le pasa por parámetro.
+        return $modelClass::query()
+            // Ordena los registros por ID para que salgan siempre en el mismo orden.
             ->orderBy('id')
-            ->get();
+            // Trae todos los registros de esa tabla.
+            ->get()
+            // Recorre cada registro y lo transforma en una opción simple para el frontend.
+            ->map(function ($row) use ($labelColumns) {
+                // Guarda el ID del registro como número entero.
+                $id = (int) ($row->id ?? 0);
+                // Aquí se construye el texto visible de la opción.
+                $label = '';
 
-        $options = [];
+                // Recorre las columnas preferidas para buscar la primera que tenga texto.
+                foreach ($labelColumns as $column) {
+                    // Lee el valor de esa columna y lo limpia de espacios.
+                    $value = trim((string) ($row->{$column} ?? ''));
 
-        foreach ($rows as $row) {
-            $data = (array) $row;
-            $id = (int) ($data['id'] ?? 0);
-            $parts = [];
-
-            // Construye la etiqueta con el orden de columnas preferido.
-            foreach ($labelColumns as $column) {
-                $value = trim((string) ($data[$column] ?? ''));
-
-                if ($value !== '') {
-                    $parts[] = $value;
-                }
-            }
-
-            // Fallback: si no hay columnas preferidas con texto, toma el primer campo util.
-            if ($parts === []) {
-                foreach ($data as $column => $value) {
-                    if ($column === 'id') {
-                        continue;
-                    }
-
-                    $text = trim((string) $value);
-
-                    if ($text !== '') {
-                        $parts[] = $text;
+                    // Si la columna tiene contenido, se usa como etiqueta y se deja de buscar.
+                    if ($value !== '') {
+                        $label = $value;
                         break;
                     }
                 }
-            }
 
-            $options[] = [
-                'id' => $id,
-                'label' => $parts !== [] ? implode(' - ', $parts) : ('ID ' . $id),
-            ];
-        }
-
-        return $options;
+                // Devuelve un array estándar con el ID y el texto que verá el frontend.
+                return [
+                    'id' => $id,
+                    // Si no se encontró ningún texto, usa un fallback tipo "ID 5".
+                    'label' => $label !== '' ? $label : ('ID ' . $id),
+                ];
+            })
+            // Reindexa el array para que quede limpio y consecutivo.
+            ->values()
+            // Convierte la colección de Laravel a array normal de PHP.
+            ->all();
     }
 
     private function asignarCamposOferta(Oferta $offer, array $validated): void

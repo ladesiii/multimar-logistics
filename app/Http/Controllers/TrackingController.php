@@ -82,7 +82,7 @@ class TrackingController extends Controller
     private function obtenerPrimerPasoTracking(): ?TrackingStep
     {
         return TrackingStep::query()
-            ->orderBy('ordre')
+            ->orderBy('ordre', 'asc')
             ->orderBy('id')
             ->first(['id', 'nom']);
     }

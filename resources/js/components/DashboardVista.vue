@@ -1,23 +1,23 @@
 
 <template>
-  
+
   <section class="dashboard-overview">
-    
+
     <header class="overview-header">
       <h1>Dashboard</h1>
       <p>Resumen de tu logistica.</p>
     </header>
 
-    
+
     <p v-if="mensajeError" class="state-message error">{{ mensajeError }}</p>
 
-    
+
     <div v-if="!estaCargando && !mensajeError" class="overview-cards">
-      
+
       <article class="overview-card total">
         <div class="card-top">
           <h2>Total de ofertas</h2>
-          
+
           <svg viewBox="0 0 24 24" class="card-icon" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 9h8M8 12h8M8 15h5" />
@@ -26,11 +26,11 @@
         <p class="overview-value">{{ estadisticas.total }}</p>
       </article>
 
-      
+
       <article class="overview-card pending">
         <div class="card-top">
           <h2>Ofertas pendientes</h2>
-          
+
           <svg viewBox="0 0 24 24" class="card-icon" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <circle cx="12" cy="12" r="9" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
@@ -39,11 +39,11 @@
         <p class="overview-value">{{ estadisticas.pending }}</p>
       </article>
 
-      
+
       <article class="overview-card accepted">
         <div class="card-top">
           <h2>Ofertas aceptadas</h2>
-          
+
           <svg viewBox="0 0 24 24" class="card-icon" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <circle cx="12" cy="12" r="9" />
             <path stroke-linecap="round" stroke-linejoin="round" d="m8 12 2.5 2.5L16 9" />
@@ -52,11 +52,11 @@
         <p class="overview-value">{{ estadisticas.accepted }}</p>
       </article>
 
-      
+
       <article class="overview-card rejected">
         <div class="card-top">
           <h2>Ofertas rechazadas</h2>
-          
+
           <svg viewBox="0 0 24 24" class="card-icon" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <circle cx="12" cy="12" r="9" />
             <path stroke-linecap="round" stroke-linejoin="round" d="m9 9 6 6m0-6-6 6" />
@@ -66,7 +66,7 @@
       </article>
     </div>
 
-    
+
     <section class="tracking-section">
       <ListadoTracking />
     </section>
@@ -76,6 +76,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import ListadoTracking from './ListadoTracking.vue'
+import axios from 'axios'
 
 const estaCargando = ref(true)
 const mensajeError = ref('')
@@ -94,7 +95,7 @@ const cargarEstadisticasDashboard = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  window.axios.get('/api/offers')
+  axios.get('/api/offers')
     .then(({ data }) => {
       const ofertas = Array.isArray(data?.offers) ? data.offers : []
 

@@ -1,6 +1,6 @@
 
 <template>
-  
+
   <NavbarLogin />
   <div class="profile-page">
     <section class="profile-card">
@@ -11,11 +11,11 @@
         </div>
       </header>
 
-      
+
       <p v-if="estaCargando" class="state-message">Cargando perfil...</p>
       <p v-else-if="errorCarga" class="state-message error">{{ errorCarga }}</p>
 
-      
+
       <form v-else class="profile-form" @submit.prevent="guardarPerfil">
         <div class="two-columns">
           <section class="section-panel">
@@ -102,6 +102,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import NavbarLogin from '../navbar/NavbarLogin.vue'
+import axios from 'axios'
 
 const estaCargando = ref(true)
 const guardandoCambios = ref(false)
@@ -128,31 +129,29 @@ const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
   return primerErrorValidacion || mensajeApi || mensajePorDefecto
 }
 
-const cargarPerfil = () => {
+const cargarPerfil = async () => {
   estaCargando.value = true
   errorCarga.value = ''
 
-  window.axios.get('/api/user')
-    .then(({ data }) => {
-      const usuario = data?.user
+  try {
+    const { data } = await axios.get('/api/user')
+    const usuario = data?.user
 
-      if (!usuario) {
-        throw new Error('No se pudo cargar el perfil.')
-      }
+    if (!usuario) {
+      throw new Error('No se pudo cargar el perfil.')
+    }
 
-      formulario.nom = usuario.nom || ''
-      formulario.cognoms = usuario.cognoms || ''
-      formulario.email = usuario.correu || usuario.email || ''
-    })
-    .catch(() => {
-      errorCarga.value = 'No se pudo cargar tu perfil.'
-    })
-    .finally(() => {
-      estaCargando.value = false
-    })
+    formulario.nom = usuario.nom || ''
+    formulario.cognoms = usuario.cognoms || ''
+    formulario.email = usuario.correu || usuario.email || ''
+  } catch (e) {
+    errorCarga.value = 'No se pudo cargar tu perfil.'
+  } finally {
+    estaCargando.value = false
+  }
 }
 
-const guardarPerfil = () => {
+const guardarPerfil = async () => {
   guardandoCambios.value = true
   mensajeError.value = ''
   mensajeExito.value = ''
@@ -171,41 +170,40 @@ const guardarPerfil = () => {
     }
   }
 
-  window.axios.put('/api/profile', {
-    nom: formulario.nom,
-    cognoms: formulario.cognoms,
-    email: formulario.email,
-    current_password: formulario.currentPassword || null,
-    new_password: formulario.newPassword || null,
-    new_password_confirmation: formulario.confirmPassword || null,
-  })
-    .then(({ data }) => {
-      const usuarioActualizado = data?.user
-
-      if (usuarioActualizado) {
-        localStorage.setItem('auth_user', JSON.stringify(usuarioActualizado))
-      }
-
-      formulario.currentPassword = ''
-      formulario.newPassword = ''
-      formulario.confirmPassword = ''
-      contrasenaVerificada.value = false
-      mensajeExito.value = 'Perfil actualizado correctamente.'
+  try {
+    const { data } = await axios.put('/api/profile', {
+      nom: formulario.nom,
+      cognoms: formulario.cognoms,
+      email: formulario.email,
+      current_password: formulario.currentPassword || null,
+      new_password: formulario.newPassword || null,
+      new_password_confirmation: formulario.confirmPassword || null,
     })
-    .catch((error) => {
-      if (error.response?.status === 422) {
-        mensajeError.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
-        return
-      }
 
-      mensajeError.value = error.response?.data?.message || 'No se pudo actualizar el perfil.'
-    })
-    .finally(() => {
-      guardandoCambios.value = false
-    })
+    const usuarioActualizado = data?.user
+
+    if (usuarioActualizado) {
+      localStorage.setItem('auth_user', JSON.stringify(usuarioActualizado))
+    }
+
+    formulario.currentPassword = ''
+    formulario.newPassword = ''
+    formulario.confirmPassword = ''
+    contrasenaVerificada.value = false
+    mensajeExito.value = 'Perfil actualizado correctamente.'
+  } catch (error) {
+    if (error.response?.status === 422) {
+      mensajeError.value = obtenerMensajeValidacion(error, 'Revisa los datos del formulario.')
+      return
+    }
+
+    mensajeError.value = error.response?.data?.message || 'No se pudo actualizar el perfil.'
+  } finally {
+    guardandoCambios.value = false
+  }
 }
 
-const verificarContrasenaActual = () => {
+const verificarContrasenaActual = async () => {
   mensajeError.value = ''
   mensajeExito.value = ''
 
@@ -216,19 +214,18 @@ const verificarContrasenaActual = () => {
 
   estaVerificandoContrasena.value = true
 
-  window.axios.post('/api/profile/verify-password', {
-    current_password: formulario.currentPassword,
-  })
-    .then(() => {
-      contrasenaVerificada.value = true
+  try {
+    await axios.post('/api/profile/verify-password', {
+      current_password: formulario.currentPassword,
     })
-    .catch((error) => {
-      contrasenaVerificada.value = false
-      mensajeError.value = error.response?.data?.message || 'No se pudo verificar la contraseña actual.'
-    })
-    .finally(() => {
-      estaVerificandoContrasena.value = false
-    })
+
+    contrasenaVerificada.value = true
+  } catch (error) {
+    contrasenaVerificada.value = false
+    mensajeError.value = error.response?.data?.message || 'No se pudo verificar la contraseña actual.'
+  } finally {
+    estaVerificandoContrasena.value = false
+  }
 }
 
 const alEscribirContrasenaActual = () => {
@@ -241,8 +238,8 @@ const volverAtras = () => {
   window.history.back()
 }
 
-onMounted(() => {
-  cargarPerfil()
+onMounted(async () => {
+  await cargarPerfil()
 })
 </script>
 
