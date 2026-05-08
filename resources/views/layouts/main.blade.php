@@ -11,6 +11,7 @@
 <body>
     <div id="app">
         @yield('content')
+        <chatbot></chatbot>
     </div>
 </body>
 </html>
