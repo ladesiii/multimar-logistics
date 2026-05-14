@@ -112,6 +112,14 @@ const errorCarga = ref('')
 const mensajeError = ref('')
 const mensajeExito = ref('')
 
+const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
+  const mensajeApi = error.response?.data?.message
+  const erroresValidacion = error.response?.data?.errors
+  const primerErrorValidacion = erroresValidacion ? Object.values(erroresValidacion)[0]?.[0] : ''
+
+  return primerErrorValidacion || mensajeApi || mensajePorDefecto
+}
+
 const formulario = reactive({
   nom: '',
   cognoms: '',
@@ -120,14 +128,6 @@ const formulario = reactive({
   newPassword: '',
   confirmPassword: '',
 })
-
-const obtenerMensajeValidacion = (error, mensajePorDefecto) => {
-  const mensajeApi = error.response?.data?.message
-  const erroresValidacion = error.response?.data?.errors
-  const primerErrorValidacion = erroresValidacion ? Object.values(erroresValidacion)[0]?.[0] : ''
-
-  return primerErrorValidacion || mensajeApi || mensajePorDefecto
-}
 
 const cargarPerfil = async () => {
   estaCargando.value = true

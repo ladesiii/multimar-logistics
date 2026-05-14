@@ -58,6 +58,12 @@ const formulario = reactive({
 const estaCargando = ref(false)
 const mensajeError = ref('')
 
+const guardarSesion = (token, tokenType, user) => {
+  localStorage.setItem('auth_token', token)
+  localStorage.setItem('auth_user', JSON.stringify(user))
+  axios.defaults.headers.common.Authorization = `${tokenType} ${token}`
+}
+
 const iniciarSesion = async () => {
   estaCargando.value = true
   mensajeError.value = ''
@@ -68,9 +74,7 @@ const iniciarSesion = async () => {
       password: formulario.password,
     })
 
-    localStorage.setItem('auth_token', data.token)
-    localStorage.setItem('auth_user', JSON.stringify(data.user))
-    axios.defaults.headers.common.Authorization = `${data.token_type} ${data.token}`
+    guardarSesion(data.token, data.token_type, data.user)
 
     window.location.href = '/dashboard'
   } catch (error) {

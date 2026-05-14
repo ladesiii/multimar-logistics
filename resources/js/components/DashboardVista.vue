@@ -87,10 +87,6 @@ const estadisticas = reactive({
   rejected: 0,
 })
 
-const contarOfertasPorEstado = (ofertas, idEstado) => {
-  return ofertas.filter((oferta) => Number(oferta?.estat_oferta_id) === idEstado).length
-}
-
 const cargarEstadisticasDashboard = () => {
   estaCargando.value = true
   mensajeError.value = ''
@@ -100,9 +96,9 @@ const cargarEstadisticasDashboard = () => {
       const ofertas = Array.isArray(data?.offers) ? data.offers : []
 
       estadisticas.total = ofertas.length
-      estadisticas.pending = contarOfertasPorEstado(ofertas, 1) // ID 1 para 'Pendiente'
-      estadisticas.accepted = contarOfertasPorEstado(ofertas, 2) // ID 2 para 'Aceptada'
-      estadisticas.rejected = contarOfertasPorEstado(ofertas, 3) // ID 3 para 'Rechazada'
+      estadisticas.pending = ofertas.filter((oferta) => Number(oferta?.estat_oferta_id) === 1).length
+      estadisticas.accepted = ofertas.filter((oferta) => Number(oferta?.estat_oferta_id) === 2).length
+      estadisticas.rejected = ofertas.filter((oferta) => Number(oferta?.estat_oferta_id) === 3).length
     })
     .catch(() => {
       mensajeError.value = 'No se pudo cargar el resumen de ofertas.'

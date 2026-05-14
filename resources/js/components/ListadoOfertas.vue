@@ -1,8 +1,5 @@
-
 <template>
-
   <section class="table-panel">
-
     <header class="table-header">
       <h1>Ofertas</h1>
       <button
@@ -14,7 +11,6 @@
         Crear oferta
       </button>
     </header>
-
 
     <table class="data-table">
       <thead>
@@ -76,7 +72,6 @@
       </tbody>
     </table>
 
-
     <OfertaDetalleModal
       :is-open="modalVerAbierto"
       :offer="ofertaSeleccionada"
@@ -91,14 +86,12 @@
       @reject="abrirModalRechazo"
     />
 
-
     <EliminarOfertaModal
       v-if="modalEliminarAbierto && ofertaAEliminar"
       :offer="ofertaAEliminar"
       @close="cerrarModalEliminar"
       @confirm="confirmarEliminarOferta"
     />
-
 
     <RechazarOfertaModal
       v-if="modalRechazoAbierto && ofertaSeleccionada"
@@ -118,7 +111,6 @@
       @close="cerrarModalCrear"
       @submit="crearOferta"
     />
-
 
     <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
@@ -151,37 +143,47 @@ const estaCargandoOpcionesFormulario = ref(false)
 const errorOpcionesFormulario = ref('')
 const opcionesFormularioOferta = ref({})
 
-// `rolActual`: obtiene el rol del usuario desde `localStorage` y lo normaliza
-// Devuelve uno de: 'admin', 'operador', 'cliente' o cadena vacía si no está disponible
-// Otros `computed` dependen de este valor para calcular permisos/visibilidad.
-const rolActual = computed(() => {
+const ESTADOS_OFERTA = {
+  1: { etiqueta: 'Pendiente', clase: 'status-pending' },
+  2: { etiqueta: 'Aceptada', clase: 'status-accepted' },
+  3: { etiqueta: 'Rechazada', clase: 'status-rejected' },
+}
+
+const obtenerUsuarioDesdeStorage = () => {
   const usuarioEnTexto = localStorage.getItem('auth_user')
 
   if (!usuarioEnTexto) {
-    return ''
+    return null
+  }
+// convierte el texto guardado otra vez a un objeto JavaScript
+  try {
+    return JSON.parse(usuarioEnTexto)
+  } catch {
+    return null
+  }
+}
+
+const obtenerRolNormalizado = (usuario) => {
+  const nombreRol = String(usuario?.rol || '').toLowerCase()
+  const idRol = Number(usuario?.rol_id || 0)
+
+  if (idRol === 1 || nombreRol.includes('admin')) {
+    return 'admin'
   }
 
-  try {
-    const usuario = JSON.parse(usuarioEnTexto)
-    const nombreRol = String(usuario?.rol || '').toLowerCase()
-    const idRol = Number(usuario?.rol_id || 0)
+  if (idRol === 2 || nombreRol.includes('operador') || nombreRol.includes('operator')) {
+    return 'operador'
+  }
 
-    if (idRol === 1 || nombreRol.includes('admin')) {
-      return 'admin'
-    }
-
-    if (idRol === 2 || nombreRol.includes('operador') || nombreRol.includes('operator')) {
-      return 'operador'
-    }
-
-    if (idRol === 3 || nombreRol.includes('client')) {
-      return 'cliente'
-    }
-  } catch {
-    return ''
+  if (idRol === 3 || nombreRol.includes('client')) {
+    return 'cliente'
   }
 
   return ''
+}
+
+const rolActual = computed(() => {
+  return obtenerRolNormalizado(obtenerUsuarioDesdeStorage())
 })
 
 // `puedeEliminarOfertas`: controla si el usuario puede ver el botón de eliminar.
@@ -239,38 +241,12 @@ const cargarOpcionesFormulario = () => {
 
 const obtenerEtiquetaEstadoOferta = (oferta) => {
   const idEstado = Number(oferta?.estat_oferta_id)
-
-  if (idEstado === 1) {
-    return 'Pendiente'
-  }
-
-  if (idEstado === 2) {
-    return 'Aceptada'
-  }
-
-  if (idEstado === 3) {
-    return 'Rechazada'
-  }
-
-  return oferta?.estat || '-'
+  return ESTADOS_OFERTA[idEstado]?.etiqueta || oferta?.estat || '-'
 }
 
 const obtenerClaseEstadoOferta = (oferta) => {
   const idEstado = Number(oferta?.estat_oferta_id)
-
-  if (idEstado === 1) {
-    return 'status-pending'
-  }
-
-  if (idEstado === 2) {
-    return 'status-accepted'
-  }
-
-  if (idEstado === 3) {
-    return 'status-rejected'
-  }
-
-  return ''
+  return ESTADOS_OFERTA[idEstado]?.clase || ''
 }
 
 onMounted(() => {
@@ -398,20 +374,9 @@ const crearOferta = (datosFormulario) => {
       cerrarModalCrear()
       cargarOfertas()
     })
-    .catch((error) => {
-      if (error.response?.status === 422) {
-        const mensajeApi = error.response?.data?.message
-        const erroresValidacion = error.response?.data?.errors
-        const primerErrorValidacion = erroresValidacion
-          ? Object.values(erroresValidacion)[0]?.[0]
-          : ''
-
-        errorEnvio.value = primerErrorValidacion || mensajeApi || 'Revisa los datos del formulario de oferta.'
-        return
-      }
-
-      errorEnvio.value = error.response?.data?.message || 'No se pudo crear la oferta.'
-    })
+      .catch(() => {
+        errorEnvio.value = 'Error al crear la oferta. Inténtalo de nuevo.'
+      })
 }
 
 const confirmarEliminarOferta = () => {

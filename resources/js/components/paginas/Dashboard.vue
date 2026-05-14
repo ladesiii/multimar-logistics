@@ -62,6 +62,28 @@ const cargarUsuarioDesdeStorage = () => {
     }
 }
 
+const normalizarUsuario = (usuarioApi) => {
+    if (!usuarioApi) {
+        return null
+    }
+
+    return {
+        id: usuarioApi.id,
+        email: usuarioApi.correu || usuarioApi.email || '',
+        name: [usuarioApi.nom, usuarioApi.cognoms].filter(Boolean).join(' ').trim(),
+        nom: usuarioApi.nom || '',
+        cognoms: usuarioApi.cognoms || '',
+        rol_id: usuarioApi.rol_id,
+        rol: usuarioApi.rol?.rol,
+    }
+}
+
+const cerrarSesion = () => {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user')
+    delete axios.defaults.headers.common.Authorization
+}
+
 const tipoRol = computed(() => {
     const idRol = Number(usuarioActual.value?.rol_id ?? 0)
     const nombreRol = String(usuarioActual.value?.rol || '').toLowerCase()
@@ -156,21 +178,11 @@ onMounted(async () => {
             throw new Error('Usuario no disponible')
         }
 
-        usuarioActual.value = {
-            id: usuarioApi.id,
-            email: usuarioApi.correu,
-            name: [usuarioApi.nom, usuarioApi.cognoms].filter(Boolean).join(' ').trim(),
-            nom: usuarioApi.nom,
-            cognoms: usuarioApi.cognoms,
-            rol_id: usuarioApi.rol_id,
-            rol: usuarioApi.rol?.rol,
-        }
+        usuarioActual.value = normalizarUsuario(usuarioApi)
 
         localStorage.setItem('auth_user', JSON.stringify(usuarioActual.value))
     } catch (e) {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('auth_user')
-        delete axios.defaults.headers.common.Authorization
+        cerrarSesion()
         window.location.href = '/'
         return
     } finally {

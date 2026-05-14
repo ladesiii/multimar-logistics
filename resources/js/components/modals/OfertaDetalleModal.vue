@@ -14,10 +14,10 @@
         </div>
 
         <div class="offer-header-actions">
-          <span v-if="offer" class="status-badge" :class="getOfferStatusClass(offer)">
-            {{ getOfferStatusLabel(offer) }}
+          <span v-if="offer" class="status-badge" :class="obtenerClaseEstadoOferta(offer)">
+            {{ obtenerEtiquetaEstadoOferta(offer) }}
           </span>
-          <button type="button" class="modal-close-btn" aria-label="Cerrar detalle" @click="close">X</button>
+          <button type="button" class="modal-close-btn" aria-label="Cerrar detalle" @click="cerrar">X</button>
         </div>
       </header>
 
@@ -91,27 +91,27 @@
                 <dt>Transportista</dt>
                 <dd>{{ offer.transportista || '-' }}</dd>
               </div>
-              <div v-if="isMaritimeTransport" class="offer-detail-row">
+              <div v-if="esTransporteMaritimo" class="offer-detail-row">
                 <dt>Línea transporte marítimo</dt>
                 <dd>{{ offer.linia_transport_maritim || '-' }}</dd>
               </div>
-              <div v-if="isMaritimeTransport" class="offer-detail-row">
+              <div v-if="esTransporteMaritimo" class="offer-detail-row">
                 <dt>Puerto origen</dt>
                 <dd>{{ offer.port_origen || '-' }}</dd>
               </div>
-              <div v-if="isMaritimeTransport" class="offer-detail-row">
+              <div v-if="esTransporteMaritimo" class="offer-detail-row">
                 <dt>Puerto destino</dt>
                 <dd>{{ offer.port_desti || '-' }}</dd>
               </div>
-              <div v-if="isAirTransport" class="offer-detail-row">
+              <div v-if="esTransporteAereo" class="offer-detail-row">
                 <dt>Aeropuerto origen</dt>
                 <dd>{{ offer.aeroport_origen || '-' }}</dd>
               </div>
-              <div v-if="isAirTransport" class="offer-detail-row">
+              <div v-if="esTransporteAereo" class="offer-detail-row">
                 <dt>Aeropuerto destino</dt>
                 <dd>{{ offer.aeroport_desti || '-' }}</dd>
               </div>
-              <div v-if="showContainerType" class="offer-detail-row">
+              <div v-if="mostrarTipoContenedor" class="offer-detail-row">
                 <dt>Tipo de contenedor</dt>
                 <dd>{{ offer.tipus_contenidor || '-' }}</dd>
               </div>
@@ -170,7 +170,7 @@
 
           
           <div class="offer-state-panel">
-            <div v-if="isPendingOffer && canManageStatus" class="offer-action-buttons">
+            <div v-if="ofertaPendiente && canManageStatus" class="offer-action-buttons">
               <button
                 type="button"
                 class="decision-btn accept-offer-btn"
@@ -189,16 +189,16 @@
               </button>
             </div>
 
-            <div v-else-if="isPendingOffer && currentRole === 'operador'" class="offer-resolution-message pending" role="status">
+            <div v-else-if="ofertaPendiente && currentRole === 'operador'" class="offer-resolution-message pending" role="status">
               <strong>Oferta pendiente de tramitacion.</strong>
               <span>Todavia no se ha tramitado la oferta.</span>
             </div>
 
-            <div v-else-if="isAcceptedOffer" class="offer-resolution-message accepted" role="status">
+            <div v-else-if="ofertaAceptada" class="offer-resolution-message accepted" role="status">
               <strong>Oferta aceptada.</strong>
               <span>Esta oferta ya ha sido validada y no requiere más acciones.</span>
             </div>
-            <div v-else-if="isRejectedOfferById" class="offer-resolution-message rejected" role="status">
+            <div v-else-if="ofertaRechazadaPorId" class="offer-resolution-message rejected" role="status">
               <strong>Oferta rechazada.</strong>
               <span>Esta oferta fue rechazada y queda cerrada para nuevas acciones.</span>
             </div>
@@ -232,64 +232,64 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'accept', 'reject'])
 
-const OFFER_STATUS = {
-  pending: 1,
-  accepted: 2,
-  rejected: 3,
+const ESTADO_OFERTA = {
+  pendiente: 1,
+  aceptada: 2,
+  rechazada: 3,
 }
 
-const normalizeText = (value) => String(value || '')
+const normalizarTexto = (value) => String(value || '')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
   .toLowerCase()
 
-const isMaritimeTransport = computed(() => normalizeText(props.offer?.tipus_transport).includes('maritim'))
-const isAirTransport = computed(() => {
-  const transport = normalizeText(props.offer?.tipus_transport)
+const esTransporteMaritimo = computed(() => normalizarTexto(props.offer?.tipus_transport).includes('maritim'))
+const esTransporteAereo = computed(() => {
+  const transport = normalizarTexto(props.offer?.tipus_transport)
   return transport.includes('aeri') || transport.includes('aereo')
 })
-const showContainerType = computed(() => {
-  const loadType = normalizeText(props.offer?.tipus_carrega)
-  return loadType.includes('contenidor') || Boolean(props.offer?.tipus_contenidor_id)
+const mostrarTipoContenedor = computed(() => {
+  const tipoCarga = normalizarTexto(props.offer?.tipus_carrega)
+  return tipoCarga.includes('contenidor') || Boolean(props.offer?.tipus_contenidor_id)
 })
-const isPendingOffer = computed(() => Number(props.offer?.estat_oferta_id) === OFFER_STATUS.pending)
-const isAcceptedOffer = computed(() => Number(props.offer?.estat_oferta_id) === OFFER_STATUS.accepted)
-const isRejectedOfferById = computed(() => Number(props.offer?.estat_oferta_id) === OFFER_STATUS.rejected)
+const ofertaPendiente = computed(() => Number(props.offer?.estat_oferta_id) === ESTADO_OFERTA.pendiente)
+const ofertaAceptada = computed(() => Number(props.offer?.estat_oferta_id) === ESTADO_OFERTA.aceptada)
+const ofertaRechazadaPorId = computed(() => Number(props.offer?.estat_oferta_id) === ESTADO_OFERTA.rechazada)
 
-const close = () => {
+const cerrar = () => {
   emit('close')
 }
 
-const getOfferStatusLabel = (offer) => {
+const obtenerEtiquetaEstadoOferta = (offer) => {
   const statusId = Number(offer?.estat_oferta_id)
 
-  if (statusId === OFFER_STATUS.pending) {
+  if (statusId === ESTADO_OFERTA.pendiente) {
     return 'Pendiente'
   }
 
-  if (statusId === OFFER_STATUS.accepted) {
+  if (statusId === ESTADO_OFERTA.aceptada) {
     return 'Aceptada'
   }
 
-  if (statusId === OFFER_STATUS.rejected) {
+  if (statusId === ESTADO_OFERTA.rechazada) {
     return 'Rechazada'
   }
 
   return offer?.estat || '-'
 }
 
-const getOfferStatusClass = (offer) => {
+const obtenerClaseEstadoOferta = (offer) => {
   const statusId = Number(offer?.estat_oferta_id)
 
-  if (statusId === OFFER_STATUS.pending) {
+  if (statusId === ESTADO_OFERTA.pendiente) {
     return 'status-pending'
   }
 
-  if (statusId === OFFER_STATUS.accepted) {
+  if (statusId === ESTADO_OFERTA.aceptada) {
     return 'status-accepted'
   }
 
-  if (statusId === OFFER_STATUS.rejected) {
+  if (statusId === ESTADO_OFERTA.rechazada) {
     return 'status-rejected'
   }
 

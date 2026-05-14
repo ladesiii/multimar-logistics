@@ -264,6 +264,25 @@ const obtenerEtiquetaSeleccionada = (lista, id) => {
   return obtenerTextoOpcion(elementoSeleccionado)
 }
 
+const limpiarCamposMaritimos = () => {
+  form.aeroport_origen_id = ''
+  form.aeroport_desti_id = ''
+}
+
+const limpiarCamposAereos = () => {
+  form.linia_transport_maritim_id = ''
+  form.port_origen_id = ''
+  form.port_desti_id = ''
+}
+
+const limpiarCampoContenedor = () => {
+  form.tipus_contenidor_id = ''
+}
+
+const limpiarCampoRechazo = () => {
+  form.rao_rebuig = ''
+}
+
 const isMaritimeTransport = computed(() => {
   const etiqueta = normalizeText(obtenerEtiquetaSeleccionada(props.options.tipus_transports, form.tipus_transport_id))
   return etiqueta.includes('maritim')
@@ -287,45 +306,48 @@ const isRejectedStatus = computed(() => {
 watch(
   () => props.options,
   (options) => {
-    const pendingId = options?.status_defaults?.pending_id
-    const firstStatusId = options?.estats_ofertes?.[0]?.id
+    // Watch 1: cuando llegan o cambian las opciones del formulario,
+    // asigna un estado por defecto si todavía no hay uno seleccionado.
+    const estadoPorDefecto = options?.status_defaults?.pending_id || options?.estats_ofertes?.[0]?.id
 
-    if (pendingId && !form.estat_oferta_id) {
-      form.estat_oferta_id = String(pendingId)
-      return
-    }
-
-    if (!form.estat_oferta_id && firstStatusId) {
-      form.estat_oferta_id = String(firstStatusId)
+    if (!form.estat_oferta_id && estadoPorDefecto) {
+      form.estat_oferta_id = String(estadoPorDefecto)
     }
   },
   { immediate: true }
 )
 
+
+
 watch(isMaritimeTransport, (active) => {
+  // Watch 2: si el transporte pasa a marítimo, limpia los campos de avión
+  // para evitar que queden valores que ya no aplican.
   if (active) {
-    form.aeroport_origen_id = ''
-    form.aeroport_desti_id = ''
+    limpiarCamposMaritimos()
   }
 })
 
 watch(isAirTransport, (active) => {
+  // Watch 3: si el transporte pasa a aéreo, limpia los campos marítimos
+  // para no conservar datos incompatibles.
   if (active) {
-    form.linia_transport_maritim_id = ''
-    form.port_origen_id = ''
-    form.port_desti_id = ''
+    limpiarCamposAereos()
   }
 })
 
 watch(showContainerType, (active) => {
+  // Watch 4: si la carga ya no requiere contenedor, borra el tipo
+  // de contenedor seleccionado porque deja de ser necesario.
   if (!active) {
-    form.tipus_contenidor_id = ''
+    limpiarCampoContenedor()
   }
 })
 
 watch(isRejectedStatus, (active) => {
+  // Watch 5: si la oferta deja de estar rechazada, limpia la razón de
+  // rechazo para no guardar texto que ya no corresponde.
   if (!active) {
-    form.rao_rebuig = ''
+    limpiarCampoRechazo()
   }
 })
 
