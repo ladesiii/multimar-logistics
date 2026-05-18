@@ -38,6 +38,12 @@ Route::middleware('auth:sanctum')->group(function () {
             ->only(['index', 'show'])
             ->whereNumber('offer'); // Lectura de ofertas según rol.
         Route::get('/tracking', [TrackingController::class, 'listarTracking']); // Lista ofertas aceptadas en tracking.
+        Route::get('/tracking-steps', [TrackingController::class, 'listarPasosTracking']); // Lista todos los pasos de tracking disponibles.
+    });
+
+    // Solo admin puede cambiar el paso de tracking de una oferta.
+    Route::middleware('role:admin')->group(function () {
+        Route::patch('/tracking/{offer}/step', [TrackingController::class, 'actualizarPasoTracking'])->whereNumber('offer');
     });
 
     // Administrador y operador pueden crear y modificar ofertas.

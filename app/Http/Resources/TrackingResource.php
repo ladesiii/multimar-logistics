@@ -32,6 +32,7 @@ class TrackingResource extends JsonResource
             'estado' => trim((string) ($this->trackingStep?->nom ?? '')) !== ''
                 ? trim((string) $this->trackingStep?->nom)
                 : $this->defaultState,
+            'tracking_step_id' => $this->tracking_step_id,
             'fecha_creacion' => optional($this->data_creacio)->format('Y-m-d'),
         ];
     }

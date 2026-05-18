@@ -56,16 +56,53 @@
         </tr>
       </tbody>
     </table>
+
+    <TrackingDetalleModal
+      :is-open="modalDetalleAbierto"
+      :oferta="ofertaSeleccionada"
+      :steps="pasosTracking"
+      :is-loading="estaCargandoPasos"
+      :error-message="errorPasos"
+      :is-admin="esAdmin"
+      :is-saving="guardandoPaso"
+      :save-error="errorGuardarPaso"
+      @close="cerrarDetalleTracking"
+      @save="guardarPasoTracking"
+    />
   </section>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
+import TrackingDetalleModal from './modals/TrackingDetalleModal.vue'
 
 const ofertasTracking = ref([])
 const estaCargando = ref(true)
 const mensajeError = ref('')
+
+const modalDetalleAbierto = ref(false)
+const ofertaSeleccionada = ref(null)
+const pasosTracking = ref([])
+const estaCargandoPasos = ref(false)
+const errorPasos = ref('')
+const guardandoPaso = ref(false)
+const errorGuardarPaso = ref('')
+
+const obtenerUsuarioDesdeStorage = () => {
+  try {
+    return JSON.parse(localStorage.getItem('auth_user') || 'null')
+  } catch {
+    return null
+  }
+}
+
+const esAdmin = computed(() => {
+  const usuario = obtenerUsuarioDesdeStorage()
+  const idRol = Number(usuario?.rol_id || 0)
+  const nombreRol = String(usuario?.rol || '').toLowerCase()
+  return idRol === 1 || nombreRol.includes('admin')
+})
 
 const cargarTracking = async () => {
   estaCargando.value = true
@@ -78,6 +115,56 @@ const cargarTracking = async () => {
     mensajeError.value = 'No se pudo cargar el tracking.'
   } finally {
     estaCargando.value = false
+  }
+}
+
+const cargarPasosTracking = async () => {
+  if (pasosTracking.value.length > 0) return
+
+  estaCargandoPasos.value = true
+  errorPasos.value = ''
+
+  try {
+    const { data } = await axios.get('/api/tracking-steps')
+    pasosTracking.value = Array.isArray(data?.steps) ? data.steps : []
+  } catch {
+    errorPasos.value = 'No se pudieron cargar los pasos de tracking.'
+  } finally {
+    estaCargandoPasos.value = false
+  }
+}
+
+const abrirDetalleTracking = async (oferta) => {
+  ofertaSeleccionada.value = oferta
+  errorGuardarPaso.value = ''
+  modalDetalleAbierto.value = true
+  await cargarPasosTracking()
+}
+
+const cerrarDetalleTracking = () => {
+  modalDetalleAbierto.value = false
+  ofertaSeleccionada.value = null
+  errorGuardarPaso.value = ''
+}
+
+const guardarPasoTracking = async (trackingStepId) => {
+  if (!ofertaSeleccionada.value?.id) return
+
+  guardandoPaso.value = true
+  errorGuardarPaso.value = ''
+
+  try {
+    await axios.patch(`/api/tracking/${ofertaSeleccionada.value.id}/step`, { tracking_step_id: trackingStepId })
+    const paso = pasosTracking.value.find(s => s.id === trackingStepId)
+    ofertaSeleccionada.value = { ...ofertaSeleccionada.value, tracking_step_id: trackingStepId, estado: paso?.nom || ofertaSeleccionada.value.estado }
+    const idx = ofertasTracking.value.findIndex(o => o.id === ofertaSeleccionada.value.id)
+    if (idx !== -1) {
+      ofertasTracking.value[idx] = { ...ofertasTracking.value[idx], tracking_step_id: trackingStepId, estado: paso?.nom || ofertasTracking.value[idx].estado }
+    }
+  } catch (error) {
+    errorGuardarPaso.value = error.response?.data?.message || 'No se pudo actualizar el paso de tracking.'
+  } finally {
+    guardandoPaso.value = false
   }
 }
 
@@ -156,4 +243,3 @@ onMounted(() => {
   height: 16px;
 }
 </style>
-
