@@ -128,9 +128,9 @@ class OfertesController extends Controller
     }
 
     // Actualiza una oferta existente respetando permisos y rol del usuario autenticado.
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, $offer): JsonResponse
     {
-        $offer = $this->resolverOfertaConAcceso($request, $id, 'No tienes permisos para gestionar esta oferta.');
+        $offer = $this->resolverOfertaConAcceso($request, $offer, 'No tienes permisos para gestionar esta oferta.');
 
         if ($offer instanceof JsonResponse) {
             return $offer;
@@ -172,9 +172,9 @@ class OfertesController extends Controller
     }
 
     // Devuelve el detalle completo de una oferta concreta.
-    public function show(Request $request, $id): JsonResponse
+    public function show(Request $request, $offer): JsonResponse
     {
-        $offer = $this->resolverOfertaConAcceso($request, $id, 'No tienes permisos para ver esta oferta.');
+        $offer = $this->resolverOfertaConAcceso($request, $offer, 'No tienes permisos para ver esta oferta.');
 
         if ($offer instanceof JsonResponse) {
             return $offer;
@@ -188,9 +188,9 @@ class OfertesController extends Controller
     }
 
     // Elimina una oferta si existe y el usuario tiene permiso para esa oferta.
-    public function destroy(Request $request, $id): JsonResponse
+    public function destroy(Request $request, $offer): JsonResponse
     {
-        $offer = $this->resolverOfertaConAcceso($request, $id, 'No tienes permisos para eliminar esta oferta.');
+        $offer = $this->resolverOfertaConAcceso($request, $offer, 'No tienes permisos para eliminar esta oferta.');
 
         if ($offer instanceof JsonResponse) {
             return $offer;

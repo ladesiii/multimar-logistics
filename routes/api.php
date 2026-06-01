@@ -35,8 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Estos roles solo consultan ofertas y tracking.
     Route::middleware('role:admin,operador,cliente')->group(function () {
         Route::apiResource('offers', OfertesController::class)
-            ->only(['index', 'show'])
-            ->whereNumber('id'); // Lectura de ofertas según rol.
+            ->only(['index', 'show']); // Lectura de ofertas según rol.
         Route::get('/tracking', [TrackingController::class, 'listarTracking']); // Lista ofertas aceptadas en tracking.
         Route::get('/tracking-steps', [TrackingController::class, 'listarPasosTracking']); // Lista todos los pasos de tracking disponibles.
     });
@@ -50,8 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,operador')->group(function () {
         Route::get('/offers/form-options', [OfertesController::class, 'opcionesFormulario']); // Carga catálogos para el formulario de ofertas.
         Route::apiResource('offers', OfertesController::class)
-            ->only(['store', 'update', 'destroy'])
-            ->whereNumber('id'); // Escritura de ofertas (admin/operador).
+            ->only(['store', 'update', 'destroy']); // Escritura de ofertas (admin/operador).
     });
 
     // Cliente y administrador pueden aceptar o rechazar la oferta.
