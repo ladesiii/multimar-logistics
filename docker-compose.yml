@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
     # Mapeo de puertos: HOST:CONTENEDOR (http://host:80 -> contenedor:80).
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     # Variables de entorno que Laravel leera dentro del contenedor.
     environment:
       # Nombre visible de la aplicacion.
@@ -26,7 +26,7 @@ services:
       # Debug en false para evitar exponer errores sensibles en produccion.
       APP_DEBUG: "false"
       # URL base publica de la aplicacion.
-      APP_URL: http://51.83.192.177:8080
+      APP_URL: http://localhost:8080
       # Configuracion de conexion a SQL Server.
       DB_CONNECTION: sqlsrv
       # Host del motor SQL Server visto desde el contenedor.
