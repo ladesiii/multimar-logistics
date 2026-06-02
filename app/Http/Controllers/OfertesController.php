@@ -267,9 +267,9 @@ class OfertesController extends Controller
         ];
     }
 
-    private function resolverOfertaConAcceso(Request $request, $id, string $mensajePermiso): Oferta|JsonResponse
+    private function resolverOfertaConAcceso(Request $request, $offer, string $mensajePermiso): Oferta|JsonResponse
     {
-        $offer = Oferta::findOrFail($id);
+        $offer = Oferta::findOrFail($offer);
 
         if (! $this->puedeAccederOferta($request, $offer)) {
             return response()->json([

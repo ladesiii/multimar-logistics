@@ -81,17 +81,21 @@ defineEmits(['close', 'save'])
 const selectedStepId = ref(null)
 
 watch(
-  () => props.oferta?.tracking_step_id,
-  (val) => { selectedStepId.value = val ?? null },
-  { immediate: true },
+  () => props.oferta?.tracking_step_id,  // vigila el paso actual de la oferta
+  (val) => { selectedStepId.value = val ?? null },  // cuando cambia, actualiza selectedStepId
+  { immediate: true },  // también lo ejecuta nada más montar el componente
 )
 
+// Devuelve el número de orden del paso actual de la oferta
 const currentStepOrder = () => {
   const current = props.steps.find(s => s.id === props.oferta?.tracking_step_id)
   return current ? Number(current.ordre) : 0
 }
 
+// Devuelve true si el paso ya fue superado (su orden es menor al actual)
 const isStepDone = (step) => Number(step.ordre) < currentStepOrder()
+
+// Devuelve true si este paso es el que tiene asignado la oferta ahora mismo
 const isStepCurrent = (step) => step.id === props.oferta?.tracking_step_id
 </script>
 
