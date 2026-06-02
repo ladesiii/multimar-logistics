@@ -1,4 +1,3 @@
-
 <template>
 
   <section class="table-panel">
@@ -40,6 +39,7 @@
           </td>
           <td>{{ oferta.fecha_creacion || '-' }}</td>
           <td class="actions-cell">
+            <!-- Botón del ojo: al hacer clic abre el modal con el detalle de la oferta -->
             <button
               type="button"
               class="icon-btn view-btn"
@@ -56,17 +56,72 @@
         </tr>
       </tbody>
     </table>
+
+    <!--
+      Modal de detalle de tracking.
+      Recibe toda la información necesaria via props y escucha dos eventos:
+        - @close: cuando el usuario cierra el modal
+        - @save: cuando el usuario guarda un nuevo paso de tracking
+    -->
+    <TrackingDetalleModal
+      :is-open="modalDetalleAbierto"       
+      :oferta="ofertaSeleccionada"          
+      :steps="pasosTracking"               
+      :is-loading="estaCargandoPasos"      
+      :error-message="errorPasos"          
+      :is-admin="esAdmin"                 
+      :is-saving="guardandoPaso"           
+      :save-error="errorGuardarPaso"      
+      @close="cerrarDetalleTracking"     
+      @save="guardarPasoTracking"        
+    />
   </section>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
+// Importa el componente modal desde la carpeta modals
+import TrackingDetalleModal from './modals/TrackingDetalleModal.vue'
 
-const ofertasTracking = ref([])
-const estaCargando = ref(true)
-const mensajeError = ref('')
+// --- Estado de la tabla principal ---
+const ofertasTracking = ref([])   // lista de ofertas que están en tracking
+const estaCargando = ref(true)    // controla el mensaje de "Cargando tracking..."
+const mensajeError = ref('')      // mensaje de error si falla la carga de ofertas
 
+// --- Estado del modal de detalle ---
+const modalDetalleAbierto = ref(false)    // si el modal está visible o no
+const ofertaSeleccionada = ref(null)      // la oferta que se está viendo en el modal
+const pasosTracking = ref([])             // lista de pasos disponibles para asignar
+const estaCargandoPasos = ref(false)      // si está cargando los pasos desde la API
+const errorPasos = ref('')                // error al cargar los pasos
+const guardandoPaso = ref(false)          // si está en proceso de guardar un cambio
+const errorGuardarPaso = ref('')          // error al intentar guardar el nuevo paso
+
+// Lee el usuario autenticado desde localStorage
+const obtenerUsuarioDesdeStorage = () => {
+  try {
+    return JSON.parse(localStorage.getItem('auth_user') || 'null')
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Determina si el usuario logueado es administrador.
+ * Devuelve true si se cumple cualquiera de estas condiciones:
+ *   - rol_id === 1 (el ID de rol admin)
+ *   - el campo 'rol' contiene la palabra "admin" (ej: "administrador", "admin_ventas")
+ * Es un computed para que Vue lo recalcule si cambia alguna dependencia reactiva.
+ */
+const esAdmin = computed(() => {
+  const usuario = obtenerUsuarioDesdeStorage()
+  const idRol = Number(usuario?.rol_id || 0)
+  const nombreRol = String(usuario?.rol || '').toLowerCase()
+  return idRol === 1 || nombreRol.includes('admin')
+})
+
+// Carga la lista de ofertas en tracking desde la API
 const cargarTracking = async () => {
   estaCargando.value = true
   mensajeError.value = ''
@@ -81,6 +136,78 @@ const cargarTracking = async () => {
   }
 }
 
+/**
+ * Carga los pasos de tracking disponibles desde la API.
+ * Si ya están cargados, no vuelve a hacer la petición (optimización).
+ */
+const cargarPasosTracking = async () => {
+  if (pasosTracking.value.length > 0) return
+
+  estaCargandoPasos.value = true
+  errorPasos.value = ''
+
+  try {
+    const { data } = await axios.get('/api/tracking-steps')
+    pasosTracking.value = Array.isArray(data?.steps) ? data.steps : []
+  } catch {
+    errorPasos.value = 'No se pudieron cargar los pasos de tracking.'
+  } finally {
+    estaCargandoPasos.value = false
+  }
+}
+
+/**
+ * Se llama al pulsar el botón del ojo en la tabla.
+ * Guarda la oferta seleccionada, abre el modal
+ * y carga los pasos disponibles si no estaban ya cargados.
+ */
+const abrirDetalleTracking = async (oferta) => {
+  ofertaSeleccionada.value = oferta
+  errorGuardarPaso.value = ''
+  modalDetalleAbierto.value = true
+  await cargarPasosTracking()
+}
+
+// Cierra el modal y limpia la oferta seleccionada y los errores
+const cerrarDetalleTracking = () => {
+  modalDetalleAbierto.value = false
+  ofertaSeleccionada.value = null
+  errorGuardarPaso.value = ''
+}
+
+/**
+ * Guarda el nuevo paso de tracking de la oferta seleccionada.
+ * Llama a la API con PATCH /api/tracking/{id}/step.
+ * Si tiene éxito, actualiza el estado tanto en ofertaSeleccionada
+ * como en el array ofertasTracking, para que la tabla refleje
+ * el cambio sin necesidad de recargar la página.
+ */
+const guardarPasoTracking = async (trackingStepId) => {
+  if (!ofertaSeleccionada.value?.id) return
+
+  guardandoPaso.value = true
+  errorGuardarPaso.value = ''
+
+  try {
+    await axios.patch(`/api/tracking/${ofertaSeleccionada.value.id}/step`, { tracking_step_id: trackingStepId })
+    const paso = pasosTracking.value.find(s => s.id === trackingStepId)
+
+    // Actualiza la oferta seleccionada con el nuevo paso
+    ofertaSeleccionada.value = { ...ofertaSeleccionada.value, tracking_step_id: trackingStepId, estado: paso?.nom || ofertaSeleccionada.value.estado }
+    
+    // Actualiza también la fila correspondiente en la tabla para reflejar el cambio visualmente
+    const idx = ofertasTracking.value.findIndex(o => o.id === ofertaSeleccionada.value.id)
+    if (idx !== -1) {
+      ofertasTracking.value[idx] = { ...ofertasTracking.value[idx], tracking_step_id: trackingStepId, estado: paso?.nom || ofertasTracking.value[idx].estado }
+    }
+  } catch (error) {
+    errorGuardarPaso.value = error.response?.data?.message || 'No se pudo actualizar el paso de tracking.'
+  } finally {
+    guardandoPaso.value = false
+  }
+}
+
+// Al montar el componente, carga inmediatamente las ofertas en tracking
 onMounted(() => {
   cargarTracking()
 })
@@ -156,4 +283,3 @@ onMounted(() => {
   height: 16px;
 }
 </style>
-

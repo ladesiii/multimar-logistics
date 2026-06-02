@@ -295,6 +295,10 @@ const obtenerClaseEstadoOferta = (offer) => {
 
   return ''
 }
+
+const getOfferStatusClass = (offer) => obtenerClaseEstadoOferta(offer)
+
+const getOfferStatusLabel = (offer) => obtenerEtiquetaEstadoOferta(offer)
 </script>
 
 <style scoped>
