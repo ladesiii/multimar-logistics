@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Clases\Utilitat;
 use App\Http\Resources\TrackingResource;
 use App\Models\Oferta;
 use App\Models\TrackingStep;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class TrackingController extends Controller
 {
@@ -62,24 +65,58 @@ class TrackingController extends Controller
         ]);
     }
 
-    // Devuelve todos los pasos de tracking ordenados.
-    public function listarPasosTracking(): JsonResponse
+    // Devuelve los pasos de tracking del incoterm asociado a la oferta.
+    public function listarPasosTracking(Oferta $offer): JsonResponse
     {
-        $steps = TrackingStep::orderBy('ordre')->orderBy('id')->get(['id', 'nom', 'ordre']);
+        $incotermId = $offer->tipus_incoterm_id;
 
-        return response()->json(['steps' => $steps]);
+        if (! $incotermId) {
+            return response()->json(['steps' => []]);
+        }
+
+        try {
+            // Obtiene los pasos de tracking asociados al incoterm mediante la tabla incoterms_passos
+            $steps = TrackingStep::join('incoterms_passos', 'tracking_steps.id', '=', 'incoterms_passos.tracking_step_id')
+                ->where('incoterms_passos.tipus_incoterm_id', $incotermId)
+                ->orderBy('tracking_steps.ordre')
+                ->orderBy('tracking_steps.id')
+                ->get(['tracking_steps.id', 'tracking_steps.nom', 'tracking_steps.ordre']);
+
+            return response()->json(['steps' => $steps]);
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
+            return response()->json([
+                'message' => ! empty($mensaje) ? $mensaje : 'Error interno al obtener los pasos de tracking.',
+            ], 500);
+        }
     }
 
     // Actualiza el paso de tracking de una oferta (solo admin).
     public function actualizarPasoTracking(Request $request, Oferta $offer): JsonResponse
     {
-        $validated = $request->validate([
-            'tracking_step_id' => ['required', 'integer', Rule::exists('tracking_steps', 'id')],
-        ]);
+        try {
+            $validated = $request->validate([
+                'tracking_step_id' => ['required', 'integer', Rule::exists('tracking_steps', 'id')],
+            ]);
 
-        $offer->update(['tracking_step_id' => $validated['tracking_step_id']]);
+            $offer->update(['tracking_step_id' => $validated['tracking_step_id']]);
 
-        return response()->json(['success' => true]);
+            return response()->json(['success' => true]);
+            
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Datos de validación incorrectos.',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (QueryException $e) {
+            $mensaje = Utilitat::errorMessage($e);
+
+            return response()->json([
+                'message' => ! empty($mensaje) ? $mensaje : 'Error interno al actualizar el paso de tracking.',
+            ], 500);
+        }
     }
 
     // Busca el ID del primer paso de tracking para usarlo al aceptar una oferta.

@@ -136,18 +136,14 @@ const cargarTracking = async () => {
   }
 }
 
-/**
- * Carga los pasos de tracking disponibles desde la API.
- * Si ya están cargados, no vuelve a hacer la petición (optimización).
- */
-const cargarPasosTracking = async () => {
-  if (pasosTracking.value.length > 0) return
-
+// Carga los pasos del incoterm de la oferta desde la API.
+const cargarPasosTracking = async (oferta) => {
   estaCargandoPasos.value = true
   errorPasos.value = ''
+  pasosTracking.value = []
 
   try {
-    const { data } = await axios.get('/api/tracking-steps')
+    const { data } = await axios.get(`/api/tracking/${oferta.id}/steps`)
     pasosTracking.value = Array.isArray(data?.steps) ? data.steps : []
   } catch {
     errorPasos.value = 'No se pudieron cargar los pasos de tracking.'
@@ -159,19 +155,20 @@ const cargarPasosTracking = async () => {
 /**
  * Se llama al pulsar el botón del ojo en la tabla.
  * Guarda la oferta seleccionada, abre el modal
- * y carga los pasos disponibles si no estaban ya cargados.
+ * y carga los pasos del incoterm de esa oferta.
  */
 const abrirDetalleTracking = async (oferta) => {
   ofertaSeleccionada.value = oferta
   errorGuardarPaso.value = ''
   modalDetalleAbierto.value = true
-  await cargarPasosTracking()
+  await cargarPasosTracking(oferta)
 }
 
-// Cierra el modal y limpia la oferta seleccionada y los errores
+// Cierra el modal y limpia la oferta seleccionada, los pasos y los errores
 const cerrarDetalleTracking = () => {
   modalDetalleAbierto.value = false
   ofertaSeleccionada.value = null
+  pasosTracking.value = []
   errorGuardarPaso.value = ''
 }
 
