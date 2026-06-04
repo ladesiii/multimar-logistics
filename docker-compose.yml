@@ -43,11 +43,11 @@ services:
       DB_TRUST_SERVER_CERTIFICATE: "true"
       # Desactiva cifrado de transporte SQL (ajustar segun politica de seguridad).
       DB_ENCRYPT: "no"
-    # Alias DNS dentro del contenedor para alcanzar servicios del host Docker.
       N8N_BASIC_AUTH_ACTIVE: false
-    N8N_SECURE_COOKIE: false
-    OLLAMA_BASE_URL: http://ollama:11434
-    N8N_CORS_ENABLED: true
-    N8N_CORS_ALLOWED_ORIGINS: "*"
+      N8N_SECURE_COOKIE: false
+      OLLAMA_BASE_URL: http://ollama:11434
+      N8N_CORS_ENABLED: true
+      N8N_CORS_ALLOWED_ORIGINS: "*"
+    # Alias DNS dentro del contenedor para alcanzar servicios del host Docker.
     extra_hosts:
       - "host.docker.internal:host-gateway"

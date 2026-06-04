@@ -129,11 +129,16 @@ export default {
       this.$nextTick(() => this.scrollToBottom())
 
       try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutos
+
         const res = await fetch(this.webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pregunta: text }),
+          signal: controller.signal
         })
+        clearTimeout(timeoutId)
 
         if (!res.ok) throw new Error('Error en la consulta')
         const data = await res.json()
@@ -145,6 +150,7 @@ export default {
           : filas.length
             ? `Encontré ${filas.length} resultado${filas.length > 1 ? 's' : ''}.`
             : 'No encontré datos para esa consulta.'
+
         this.messages.push({
           role: 'bot',
           text: resumen,
@@ -154,11 +160,10 @@ export default {
           time: this.now(),
         })
       } catch (e) {
-        this.messages.push({
-          role: 'bot',
-          text: '⚠️ No pude conectar con el servidor. Asegúrate de que N8N está corriendo.',
-          time: this.now(),
-        })
+        const msg = e.name === 'AbortError'
+          ? '⏱️ La consulta tardó demasiado. Inténtalo de nuevo.'
+          : '⚠️ No pude conectar con el servidor. Asegúrate de que N8N está corriendo.'
+        this.messages.push({ role: 'bot', text: msg, time: this.now() })
       } finally {
         this.loading = false
         this.$nextTick(() => this.scrollToBottom())
