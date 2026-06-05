@@ -30,7 +30,7 @@ services:
       # Configuracion de conexion a SQL Server.
       DB_CONNECTION: sqlsrv
       # Host del motor SQL Server visto desde el contenedor.
-      DB_HOST: host.docker.internal
+      DB_HOST: 51.83.192.177
       # Puerto del motor SQL Server.
       DB_PORT: 1433
       # Nombre de la base de datos.

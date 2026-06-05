@@ -61,7 +61,7 @@ COPY --from=frontend-build /app/public/build ./public/build
 # Instala dependencias de Composer optimizadas para producción
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# RECOMENDADO: Crear las carpetas de almacenamiento si no existen antes del chown
+# Crear las carpetas de almacenamiento si no existen antes del chown
 RUN mkdir -p storage/framework/cache/data \
     && mkdir -p storage/framework/app/cache \
     && mkdir -p storage/framework/sessions \
