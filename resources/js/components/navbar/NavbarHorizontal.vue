@@ -58,12 +58,34 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import axios from 'axios'
 
 const nombreUsuario = ref('Usuario')
 const ajustesAbiertos = ref(false)
 const idiomaSeleccionado = ref('es')
 const botonAjustesRef = ref(null)
 const panelAjustesRef = ref(null)
+
+const cargarNombreUsuario = () => {
+  const usuarioGuardado = localStorage.getItem('auth_user')
+
+  if (!usuarioGuardado) {
+    return 'Usuario'
+  }
+
+  try {
+    const usuario = JSON.parse(usuarioGuardado)
+    return usuario.name || [usuario.nom, usuario.cognoms].filter(Boolean).join(' ') || usuario.email || 'Usuario'
+  } catch {
+    return 'Usuario'
+  }
+}
+
+const limpiarSesionLocal = () => {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('auth_user')
+  delete axios.defaults.headers.common.Authorization
+}
 
 const alternarAjustes = () => {
   ajustesAbiertos.value = !ajustesAbiertos.value
@@ -96,21 +118,16 @@ const cerrarSesion = () => {
   const tokenSesion = localStorage.getItem('auth_token')
 
   if (tokenSesion) {
-    window.axios.post('/api/logout')
-      .catch(() => {
-      })
+    axios.post('/api/logout')
+      .catch(() => {})
       .finally(() => {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('auth_user')
-        delete window.axios.defaults.headers.common.Authorization
+        limpiarSesionLocal()
         window.location.href = '/'
       })
     return
   }
 
-  localStorage.removeItem('auth_token')
-  localStorage.removeItem('auth_user')
-  delete window.axios.defaults.headers.common.Authorization
+  limpiarSesionLocal()
   window.location.href = '/'
 }
 
@@ -119,18 +136,7 @@ const irAPerfil = () => {
 }
 
 onMounted(() => {
-  const usuarioGuardado = localStorage.getItem('auth_user')
-
-  if (! usuarioGuardado) {
-    return
-  }
-
-  try {
-    const usuario = JSON.parse(usuarioGuardado)
-    nombreUsuario.value = usuario.name || [usuario.nom, usuario.cognoms].filter(Boolean).join(' ') || usuario.email || 'Usuario'
-  } catch {
-    nombreUsuario.value = 'Usuario'
-  }
+  nombreUsuario.value = cargarNombreUsuario()
 
   document.addEventListener('click', gestionarClickFuera)
   document.addEventListener('keydown', gestionarTeclado)

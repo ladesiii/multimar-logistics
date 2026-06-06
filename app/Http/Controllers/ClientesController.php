@@ -82,11 +82,7 @@ class ClientesController extends Controller
 
     public function update(Request $request, $id): JsonResponse // Actualiza un cliente existente junto con su usuario
     {
-        $client = Cliente::find($id);
-
-        if (! $client) {
-            return response()->json(['message' => 'Cliente no encontrado.'], 404);
-        }
+        $client = Cliente::findOrFail($id);
 
         $client->load('usuari');
 
@@ -155,18 +151,14 @@ class ClientesController extends Controller
 
     public function destroy($id): JsonResponse // Elimina un cliente junto con su usuario asociado
     {
-        $client = Cliente::find($id);
-
-        if (! $client) {
-            return response()->json(['message' => 'Cliente no encontrado.'], 404);
-        }
+        $client = Cliente::findOrFail($id);
 
         DB::transaction(function () use ($client) {
             $usuariId = $client->usuari_id;
             $client->delete();
 
             if ($usuariId) {
-                Usuari::where('id', $usuariId)->delete();
+                Usuari::query()->where('id', '=', $usuariId)->delete();
             }
         });
 

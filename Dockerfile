@@ -3,14 +3,13 @@
 # ============================================
 FROM node:20-alpine AS frontend-build
 
-# Directorio de trabajo para el build del frontend.
 WORKDIR /app
 
-# Instala dependencias de Node (mejor cache de capas copiando primero package*.json).
+# Instala dependencias aprovechando la caché de Docker
 COPY package*.json ./
 RUN npm install
 
-# Copia el codigo y genera los assets para produccion en public/build.
+# Copia el código y genera los assets para producción
 COPY . .
 RUN npm run build
 
@@ -19,7 +18,10 @@ RUN npm run build
 # ============================================
 FROM php:8.3-fpm-bullseye
 
-# Instala Nginx, Supervisor y dependencias del runtime/build de extensiones PHP.
+# Evita alertas interactivas durante la instalación
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instala Nginx, Supervisor y herramientas base
 RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
@@ -31,45 +33,52 @@ RUN apt-get update && apt-get install -y \
     g++ \
     make \
     gnupg2 \
-    apt-transport-https
+    apt-transport-https \
+    && rm -rf /var/lib/apt/lists/*
 
-# Driver SQL Server oficial para Debian
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev \
+# Driver SQL Server oficial (Forma moderna compatible con Debian 11)
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/11/prod bullseye main" > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev \
     && pecl install sqlsrv pdo_sqlsrv \
-    && docker-php-ext-enable sqlsrv pdo_sqlsrv
+    && docker-php-ext-enable sqlsrv pdo_sqlsrv \
+    && rm -rf /var/lib/apt/lists/*
 
-# Extensiones PHP requeridas por Laravel y tareas en segundo plano.
+# Extensiones PHP requeridas por Laravel
 RUN docker-php-ext-install pdo mbstring bcmath pcntl
 
-# Composer para instalar dependencias PHP dentro de la imagen final.
+# Instalar Composer desde la imagen oficial
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Raiz de la aplicacion Laravel.
 WORKDIR /var/www/html
 
-# Copia codigo backend y assets compilados desde la etapa frontend-build.
+# Copia el código del backend
 COPY . .
+
+# Copia los assets compilados por Vite desde la STAGE 1
 COPY --from=frontend-build /app/public/build ./public/build
 
-# Instala dependencias de produccion de Composer.
+# Instala dependencias de Composer optimizadas para producción
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# Ajusta permisos para que Laravel pueda escribir cache/logs correctamente.
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+# Crear las carpetas de almacenamiento si no existen antes del chown
+RUN mkdir -p storage/framework/cache/data \
+    && mkdir -p storage/framework/app/cache \
+    && mkdir -p storage/framework/sessions \
+    && mkdir -p storage/framework/views \
+    && mkdir -p storage/logs
 
-# Copia configuraciones de Nginx, Supervisor y script de arranque.
+# Ajusta permisos definitivos (Usuario www-data de Nginx/PHP)
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
+
+# Copia configuraciones usando tu estructura
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh
 
-# Puerto HTTP expuesto por Nginx dentro del contenedor.
 EXPOSE 80
 
-# Inicia script que prepara Laravel y levanta Supervisor (php-fpm + nginx).
 CMD ["/start.sh"]

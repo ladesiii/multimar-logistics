@@ -7,6 +7,7 @@ use App\Models\Oferta;
 use App\Models\TrackingStep;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TrackingController extends Controller
 {
@@ -61,6 +62,26 @@ class TrackingController extends Controller
         ]);
     }
 
+    // Devuelve todos los pasos de tracking ordenados.
+    public function listarPasosTracking(): JsonResponse
+    {
+        $steps = TrackingStep::orderBy('ordre')->orderBy('id')->get(['id', 'nom', 'ordre']);
+
+        return response()->json(['steps' => $steps]);
+    }
+
+    // Actualiza el paso de tracking de una oferta (solo admin).
+    public function actualizarPasoTracking(Request $request, Oferta $offer): JsonResponse
+    {
+        $validated = $request->validate([
+            'tracking_step_id' => ['required', 'integer', Rule::exists('tracking_steps', 'id')],
+        ]);
+
+        $offer->update(['tracking_step_id' => $validated['tracking_step_id']]);
+
+        return response()->json(['success' => true]);
+    }
+
     // Busca el ID del primer paso de tracking para usarlo al aceptar una oferta.
     public function resolverIdPasoTrackingInicial(): ?int
     {
@@ -82,7 +103,7 @@ class TrackingController extends Controller
     private function obtenerPrimerPasoTracking(): ?TrackingStep
     {
         return TrackingStep::query()
-            ->orderBy('ordre')
+            ->orderBy('ordre', 'asc')
             ->orderBy('id')
             ->first(['id', 'nom']);
     }

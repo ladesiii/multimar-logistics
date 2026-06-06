@@ -1,8 +1,8 @@
 
 <template>
-  
+
   <section class="table-panel">
-    
+
     <header class="table-header">
       <h1>Usuarios</h1>
       <button type="button" class="add-entity-btn" @click="modalNuevoAbierto = true">
@@ -10,7 +10,7 @@
       </button>
     </header>
 
-    
+
     <table class="data-table">
       <thead>
         <tr>
@@ -52,14 +52,14 @@
       </tbody>
     </table>
 
-    
+
     <NuevoUsuarioModal
       v-if="modalNuevoAbierto"
       @close="modalNuevoAbierto = false"
       @submit="crearUsuario"
     />
 
-    
+
     <EditarUsuarioModal
       v-if="modalEditarAbierto && usuarioSeleccionado"
       :user="usuarioSeleccionado"
@@ -67,7 +67,7 @@
       @submit="editarUsuario"
     />
 
-    
+
     <EliminarUsuarioModal
       v-if="modalEliminarAbierto && usuarioAEliminar"
       :user="usuarioAEliminar"
@@ -75,7 +75,7 @@
       @confirm="confirmarEliminarUsuario"
     />
 
-    
+
     <p v-if="errorEnvio" class="submit-error">{{ errorEnvio }}</p>
   </section>
 </template>
@@ -85,6 +85,7 @@ import { onMounted, ref } from 'vue'
 import NuevoUsuarioModal from './modals/NuevoUsuarioModal.vue'
 import EditarUsuarioModal from './modals/EditarUsuarioModal.vue'
 import EliminarUsuarioModal from './modals/EliminarUsuarioModal.vue'
+import axios from 'axios'
 
 const usuarios = ref([])
 const estaCargando = ref(true)
@@ -108,7 +109,7 @@ const cargarUsuarios = () => {
   estaCargando.value = true
   mensajeError.value = ''
 
-  window.axios.get('/api/users')
+  axios.get('/api/users')
     .then(({ data }) => {
       usuarios.value = data.users || []
     })
@@ -127,7 +128,7 @@ onMounted(() => {
 const crearUsuario = (datosUsuario) => {
   errorEnvio.value = ''
 
-  window.axios.post('/api/users', datosUsuario)
+  axios.post('/api/users', datosUsuario)
     .then(() => {
       modalNuevoAbierto.value = false
       cargarUsuarios()
@@ -161,7 +162,7 @@ const editarUsuario = (datosUsuario) => {
 
   errorEnvio.value = ''
 
-  window.axios.put(`/api/users/${usuarioSeleccionado.value.id}`, datosUsuario)
+  axios.put(`/api/users/${usuarioSeleccionado.value.id}`, datosUsuario)
     .then(() => {
       modalEditarAbierto.value = false
       usuarioSeleccionado.value = null
@@ -195,7 +196,7 @@ const confirmarEliminarUsuario = () => {
 
   errorEnvio.value = ''
 
-  window.axios.delete(`/api/users/${usuarioAEliminar.value.id}`)
+  axios.delete(`/api/users/${usuarioAEliminar.value.id}`)
     .then(() => {
       cerrarModalEliminar()
       cargarUsuarios()
