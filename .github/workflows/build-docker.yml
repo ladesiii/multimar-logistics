@@ -24,6 +24,7 @@ jobs:
           # Credenciales almacenadas en Secrets del repo.
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOCKEN }}  #TOKEN NO CONTRASEÑA
+
       - name: Build y Push imagen
         uses: docker/build-push-action@v5
         with:
