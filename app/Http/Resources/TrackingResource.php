@@ -32,31 +32,26 @@ class TrackingResource extends JsonResource
             'estado' => trim((string) ($this->trackingStep?->nom ?? '')) !== ''
                 ? trim((string) $this->trackingStep?->nom)
                 : $this->defaultState,
+            'tracking_step_id' => $this->tracking_step_id,
             'fecha_creacion' => optional($this->data_creacio)->format('Y-m-d'),
         ];
     }
 
     private function buildTrackingRoute(Oferta $offer): string
     {
-        $portOrigin = trim((string) ($offer->portOrigen?->nom ?? ''));
-        $portDest = trim((string) ($offer->portDesti?->nom ?? ''));
+        $candidates = [
+            [$offer->portOrigen?->nom,      $offer->portDesti?->nom],
+            [$offer->aeroportOrigen?->codi,  $offer->aeroportDesti?->codi],
+            [$offer->aeroportOrigen?->nom,   $offer->aeroportDesti?->nom],
+        ];
 
-        if ($portOrigin !== '' || $portDest !== '') {
-            return trim(($portOrigin !== '' ? $portOrigin : '-') . ' -> ' . ($portDest !== '' ? $portDest : '-'));
-        }
+        foreach ($candidates as [$origin, $dest]) {
+            $origin = trim((string) ($origin ?? ''));
+            $dest   = trim((string) ($dest ?? ''));
 
-        $airportOrigin = trim((string) ($offer->aeroportOrigen?->codi ?? ''));
-        $airportDest = trim((string) ($offer->aeroportDesti?->codi ?? ''));
-
-        if ($airportOrigin !== '' || $airportDest !== '') {
-            return trim(($airportOrigin !== '' ? $airportOrigin : '-') . ' -> ' . ($airportDest !== '' ? $airportDest : '-'));
-        }
-
-        $airportOriginName = trim((string) ($offer->aeroportOrigen?->nom ?? ''));
-        $airportDestName = trim((string) ($offer->aeroportDesti?->nom ?? ''));
-
-        if ($airportOriginName !== '' || $airportDestName !== '') {
-            return trim(($airportOriginName !== '' ? $airportOriginName : '-') . ' -> ' . ($airportDestName !== '' ? $airportDestName : '-'));
+            if ($origin !== '' || $dest !== '') {
+                return ($origin ?: '-') . ' -> ' . ($dest ?: '-');
+            }
         }
 
         return '-';
